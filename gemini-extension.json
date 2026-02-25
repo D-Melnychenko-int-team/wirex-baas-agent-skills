@@ -1,0 +1,11 @@
+{
+  "name": "wirex-baas-skills",
+  "description": "Agent skills for Wirex BaaS — blockchain financial services platform providing AA wallets, KYC, cards, crypto, and banking via REST APIs.",
+  "version": "1.0.0",
+  "contextFileName": "agents/AGENTS.md",
+  "mcpServers": {
+    "wirex-baas": {
+      "httpUrl": "https://docs.wirexapp.com/mcp"
+    }
+  }
+}

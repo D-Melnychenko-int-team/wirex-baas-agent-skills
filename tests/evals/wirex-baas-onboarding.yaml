@@ -1,0 +1,26 @@
+evals:
+  - question: "What are the three steps of the Wirex BaaS onboarding process, and what endpoint do I call to register a new user?"
+    criteria:
+      - "Lists wallet deployment as one of the three steps"
+      - "Lists user registration as one of the three steps"
+      - "Lists KYC verification as one of the three steps"
+      - "Specifies POST /api/v2/user as the registration endpoint"
+
+  - question: "What are the three KYC verification flows available, and how do they differ in complexity and UI ownership?"
+    criteria:
+      - "Lists Hosted KYC as one of the flows (low complexity, Wirex-hosted UI)"
+      - "Lists SumSub Shared KYC as one of the flows (medium complexity)"
+      - "Lists Reliance KYC as one of the flows (high complexity, partner-owned UI)"
+
+  - question: "What smart wallet technology does Wirex BaaS use, and what modules are installed during wallet deployment?"
+    criteria:
+      - "Mentions ERC-4337 Account Abstraction"
+      - "Mentions Kernel v3.1 as the wallet version"
+      - "Lists FundsManagement executor as an installed module"
+      - "Lists ExecutionDelayPolicy as an installed module"
+
+  - question: "After a user completes KYC verification, what capabilities become available? List some specific capability names."
+    criteria:
+      - "Mentions VisaVirtualCard as a capability"
+      - "Mentions SepaAccount or AchAccount as a banking capability"
+      - "Indicates that card issuance and banking require KYC approval"

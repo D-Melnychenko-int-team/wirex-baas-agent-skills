@@ -1,0 +1,20 @@
+evals:
+  - question: "I'm starting a new integration with Wirex BaaS. What base URL should I use for development, and what headers are required on every API request?"
+    criteria:
+      - "Recommends the sandbox URL (api-baas.wirexapp.tech) for development, not the production URL"
+      - "Lists Authorization header with Bearer token as required"
+      - "Lists X-Chain-Id header as required"
+
+  - question: "How does the Wirex BaaS error response format work? What are the top-level fields and what error categories exist?"
+    criteria:
+      - "Mentions error_reason as a top-level field"
+      - "Mentions error_category as a top-level field containing category and http_status_code"
+      - "Lists CategoryValidationFailure (400) as one of the error categories"
+      - "Lists CategoryUnauthorized (401) as one of the error categories"
+
+  - question: "What are the five steps of the Wirex BaaS integration flow, and what blockchain chain ID should I use for sandbox development on Base Sepolia?"
+    criteria:
+      - "Mentions authentication / token exchange as one of the steps"
+      - "Mentions user registration as one of the steps"
+      - "Specifies 84532 as the sandbox Base Sepolia chain ID"
+      - "Does NOT recommend 8453 (production chain ID) for sandbox development"

@@ -1,0 +1,26 @@
+evals:
+  - question: "How do I get an access token for server-to-server API calls? What endpoint, HTTP method, and request body fields are needed?"
+    criteria:
+      - "Specifies POST /api/v1/token as the endpoint"
+      - "Lists client_id, client_secret, and grant_type as required body fields"
+      - "Mentions client_credentials as the grant_type value"
+      - "Does NOT mention API key authentication"
+
+  - question: "How do I get a user-scoped token to make API calls on behalf of a specific user?"
+    criteria:
+      - "Specifies POST /api/v1/user/authorize as the endpoint"
+      - "Mentions that a valid S2S token is needed first (in Authorization header)"
+      - "Lists X-Chain-Id and X-User-Address as required headers"
+
+  - question: "How long are Wirex BaaS access tokens valid, and what is the recommended caching strategy?"
+    criteria:
+      - "States tokens are valid for 48 hours"
+      - "Recommends caching tokens and refreshing them with a 5-minute buffer before expiry"
+      - "Does NOT state tokens are valid for 24 hours or 1 hour"
+
+  - question: "What are the three authentication methods available in Wirex BaaS, and what headers does Privy authentication require?"
+    criteria:
+      - "Lists Server-to-Server (S2S) OAuth2 as one of the three methods"
+      - "Lists User Token Issuance as one of the three methods"
+      - "Lists Privy Authentication as one of the three methods"
+      - "Mentions Authorization and Identity headers for Privy auth"

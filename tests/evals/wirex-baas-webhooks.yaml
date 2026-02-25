@@ -1,0 +1,21 @@
+evals:
+  - question: "What are the webhook delivery semantics in Wirex BaaS? What is the timeout, are failed deliveries retried, and what content type is used?"
+    criteria:
+      - "States the webhook timeout is 10 seconds"
+      - "States that failed webhook deliveries are NOT retried"
+      - "States the content type is application/json"
+
+  - question: "How do I query a user's transaction history as a fallback for missed webhooks? What endpoint, pagination, and filters are available?"
+    criteria:
+      - "Specifies GET /api/v1/activity/feed as the endpoint"
+      - "Mentions page_number and page_size as pagination parameters"
+      - "Mentions filtering by types (activity types) or subject"
+      - "Notes that types and subject are mutually exclusive parameters"
+
+  - question: "List all the v2 webhook endpoints available in Wirex BaaS and what events they cover."
+    criteria:
+      - "Lists /v2/webhooks/wallets for wallet creation/status"
+      - "Lists /v2/webhooks/balances for balance updates"
+      - "Lists /v2/webhooks/cards for card status changes"
+      - "Lists /v2/webhooks/activities for transaction updates"
+      - "Lists /v2/webhooks/3ds for 3D Secure confirmation requests"

@@ -1,0 +1,29 @@
+evals:
+  - question: "What is the core pattern that all Wirex BaaS transfer types follow? Describe the two steps and the key field that links them."
+    criteria:
+      - "Describes the estimate-then-execute pattern"
+      - "Explains that the estimate step returns an estimation_id used by the execute step"
+      - "Mentions that the estimation locks in exchange rates and fees"
+
+  - question: "How do I send a SEPA bank transfer? What endpoints are involved and what capability is required?"
+    criteria:
+      - "Specifies POST /api/v2/bank/transfer/estimate for the estimate step"
+      - "Specifies POST /api/v1/bank/transfer for the execute step"
+      - "States that SepaAccount capability is required"
+
+  - question: "How do I send an ACH bank transfer? How does the ACH setup differ from SEPA regarding bank account activation?"
+    criteria:
+      - "States that AchAccount capability is required"
+      - "Explains that ACH requires an explicit activation call (POST /api/v1/bank/accounts) unlike SEPA"
+      - "Mentions GET /api/v1/bank/accounts to retrieve bank details"
+
+  - question: "How does Push-to-Card work? What are the steps from card tokenization to sending the payment?"
+    criteria:
+      - "Describes card tokenization via the PCI-compliant endpoint as the first step"
+      - "Mentions creating a recipient via POST /api/v2/recipients"
+      - "Lists the estimate and execute endpoints for card transfers"
+
+  - question: "What recipient types does Wirex BaaS support for outgoing transfers?"
+    criteria:
+      - "Lists all six types: Card, Sepa, Ach, Crypto, FasterPayment, and Swift"
+      - "Does NOT mention unsupported types like PayPal or Venmo"

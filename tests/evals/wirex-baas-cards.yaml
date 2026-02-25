@@ -1,0 +1,24 @@
+evals:
+  - question: "How do I issue a virtual Visa card? What capability is required and what endpoint do I call?"
+    criteria:
+      - "States that VisaVirtualCard capability is required"
+      - "Specifies an endpoint for issuing virtual cards (POST to /api/v2/cards/virtual)"
+      - "Mentions that virtual cards are auto-activated on issuance"
+
+  - question: "How do I retrieve a card's PAN, CVV, and PIN? What security mechanism protects these details?"
+    criteria:
+      - "Mentions that an action_token is required to access card details"
+      - "Lists the card details endpoints ({cardId}/details for PAN, {cardId}/cvv, {cardId}/pin)"
+      - "Describes the two-step verification process (signature or SMS OTP) to obtain the action_token"
+
+  - question: "What are the two 3DS authentication methods supported by Wirex BaaS, and how does the in-app confirmation webhook flow work?"
+    criteria:
+      - "Lists OTP via SMS as the first 3DS method"
+      - "Lists in-app confirmation via webhook as the second 3DS method"
+      - "Describes the webhook flow: Wirex sends POST to /v2/webhooks/3ds, partner shows UI, then calls approve or decline endpoint"
+
+  - question: "What card lifecycle states exist and what endpoints manage the card status? Can a closed card be reopened?"
+    criteria:
+      - "Lists Active, Blocked, and Closed as card states"
+      - "Mentions endpoints for activate, block, unblock, and close operations"
+      - "States that closing a card is irreversible / permanent"

@@ -1,0 +1,18 @@
+evals:
+  - question: "How do I check a user's wallet balance? What endpoint should I call and what tokens will I see in the response?"
+    criteria:
+      - "Specifies GET /api/v1/wallet as the balance endpoint"
+      - "Mentions WUSD and WEUR as the token types in the response"
+      - "Explains that balances are represented as wrapped stablecoins on Base chain"
+
+  - question: "How do crypto deposits work in Wirex BaaS? What provider handles multi-chain deposits and how many chains are supported?"
+    criteria:
+      - "Mentions Rhino.fi as the cross-chain deposit provider"
+      - "States that 9 chains are supported for deposits"
+      - "Explains that deposited tokens are bridged to Base and wrapped into WUSD/WEUR"
+
+  - question: "How do ERC20 withdrawals work? Describe the security pattern and the key timestamp field involved."
+    criteria:
+      - "Describes the two-phase delay pattern (request phase then execute phase)"
+      - "Mentions the valid_after timestamp that determines when execution becomes possible"
+      - "Mentions ExecutionDelayPolicy as the mechanism enforcing the delay"
