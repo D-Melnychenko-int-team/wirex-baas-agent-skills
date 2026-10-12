@@ -18,7 +18,40 @@ Detailed endpoint reference for SEPA (EUR) and ACH (USD) bank transfers, includi
 
 ## SEPA Bank Details
 
-SEPA bank accounts are **auto-provisioned** upon user verification. There is no activation call needed. Simply retrieve the account details once the `SepaAccount` capability is `Active`.
+SEPA accounts **require activation**: verification alone does not provision an IBAN (this changed; SEPA now follows the same model as ACH). Check the `SepaAccount` capability via `GET /api/v2/user` and follow the path for its status. Available to residents of: AT, BE, BG, CY, CZ, DK, EE, FI, FR, DE, GR, HU, IS, IE, IT, LV, LT, LU, MT, NL, NO, PL, PT, RO, SK, SI, ES, SE, GB.
+
+### SepaAccount Capability Status
+
+| Status                                 | Meaning / what to do                                                  |
+|----------------------------------------|-----------------------------------------------------------------------|
+| `ActivationNotStarted`                 | Standard activation: `POST /api/v1/bank/accounts`                     |
+| `ExternalProviderVerificationRequired` | Wallet-linking activation (`init` -> sign -> `complete`)              |
+| `ExternalProviderRegistrationPending`  | Wait, then re-check                                                   |
+| `InProgress`                           | Activation requested; wait for the bank account webhook               |
+| `Active`                               | Provisioned; retrieve details                                         |
+| `NotFulfilled`                         | Complete the required verification level first                        |
+| `NotRequired`                          | Capability does not apply to this user                                |
+| `NotAvailable`                         | Not available for the user's country of residence                     |
+
+### Activate SEPA Account (standard)
+
+**POST /api/v1/bank/accounts**
+
+```json
+{ "account_type": "Sepa" }
+```
+
+`account_type` accepts `Sepa`, `Ach`, `FasterPayment`, `Spei` (the API reference enum also lists `Swift`). Response: `{ "details_id": "..." }`; the capability becomes `InProgress`. When the capability does not need activation the call returns `400` ("Account capability does not need activation or is not available").
+
+### Activate SEPA Account (with wallet linking)
+
+Used only when the capability is `ExternalProviderVerificationRequired`; the Primary Smart Wallet must prove ownership to an external provider.
+
+1. **POST /api/v1/bank/accounts/init** with `{ "chain": "8453" }`. `chain` must be a numeric chain ID sent as a string (not a name like `"base"`). Response: `{ "challenge": "...", "wallet_address": "0x...", "chain": "8453" }`. The wallet is resolved server-side as the user's Primary wallet (none -> `400 Wallet not found`).
+2. Sign `challenge` with the wallet at `wallet_address`.
+3. **POST /api/v1/bank/accounts/complete** with `{ "chain": "8453", "signed_challenge": "0x..." }`. Response: `{ "details_id": "..." }`.
+
+Both calls return `400` ("External provider wallet verification is not required for this account") when the capability is in any other status.
 
 ### Get Bank Accounts
 
@@ -32,7 +65,7 @@ Retrieves all bank accounts for the user, including SEPA details (IBAN and BIC).
 |---------------|----------|------------------------------------|
 | Authorization  | Yes      | Bearer `{access_token}`           |
 | Content-Type   | Yes      | `application/json`                 |
-| X-User-Address | Yes      | The user's EOA wallet address      |
+| X-User-Wallet  | Yes      | The user's EOA wallet address      |
 | X-Chain-Id     | Yes      | The blockchain chain ID            |
 
 **Query Parameters:**
@@ -41,6 +74,7 @@ Retrieves all bank accounts for the user, including SEPA details (IBAN and BIC).
 |------------|---------|---------|--------------------------|
 | page_number | integer | 0       | Page index (0-indexed)   |
 | page_size   | integer | 25      | Items per page           |
+| sort        | string  | name    | `name` (ascending) or `usage` (descending usage count) |
 
 **Response (200 OK):**
 
@@ -62,6 +96,8 @@ Retrieves all bank accounts for the user, including SEPA details (IBAN and BIC).
 }
 ```
 
+The guides show the list under `accounts`, while the API reference schema names it `data`; handle both. `account_type` values: `Sepa`, `Swift`, `FasterPayment`, `Ach`, `Spei`. `details` may also carry `mandatory_reference` (if present it MUST be set as the incoming transfer comment so the funds are credited to the right account), `sort_code`, `clabe`. Extra query parameter: `sort` (`name` default, or `usage`).
+
 The `id` field uses a composite `{account_id}:{details_id}` format. Use this composite ID as the `account_id` in transfer estimate and execute requests.
 
 **Account Statuses:** `Pending` (provisioning), `Active` (ready), `Blocked` (suspended), `Closed` (terminated).
@@ -70,9 +106,11 @@ The `id` field uses a composite `{account_id}:{details_id}` format. Use this com
 
 **Endpoint:** `POST {webhook_url}/webhook/accounts/fiat`
 
-Triggered when a bank account is created or details change.
+Triggered when a bank account is created or details change. The account is usable once the webhook reports the SEPA details.
 
-**`change_type` values:** `Created`, `DetailsChanged`
+**`change_type` values:** `Created`, `DetailsChanged` (`details[]` entries carry `id` = `details_id`, `type` e.g. `Sepa`/`Ach`, `status`, `transport_currency`).
+
+Incoming transfers arrive as `/v2/webhooks/activities` events (`type: Sepa` or `AchPush`, `direction: Inbound`, steps Initiated → BankIn → CryptoIn) and are credited as WEUR/WUSD. Typical settlement: SEPA 1-2 business days, ACH 1-3 business days.
 
 ---
 
@@ -88,7 +126,7 @@ Estimate the cost and exchange rate for a SEPA transfer before executing it.
 |---------------|----------|------------------------------------|
 | Authorization  | Yes      | Bearer `{access_token}`           |
 | Content-Type   | Yes      | `application/json`                 |
-| X-User-Address | Yes      | The user's EOA wallet address      |
+| X-User-Wallet  | Yes      | The user's EOA wallet address      |
 | X-Chain-Id     | Yes      | The blockchain chain ID            |
 
 **Request Body:**
@@ -134,7 +172,7 @@ For company recipients, use `company_name` instead of `first_name`/`last_name`:
 | account_id                | string   | Yes      | Composite ID in `{account_id}:{details_id}` format      |
 | amount                    | number   | Yes      | Transfer amount in EUR                                   |
 | tokens                    | string[] | No       | Token contract addresses; omit for all available tokens  |
-| recipient.first_name      | string   | No*      | Recipient first name (individual)                        |
+| recipient.first_name      | string   | No*      | Recipient first name (individual); recipient is required for ACH |
 | recipient.last_name       | string   | No*      | Recipient last name (individual)                         |
 | recipient.company_name    | string   | No*      | Recipient company name (business)                        |
 | recipient_account.iban    | string   | Yes      | Recipient IBAN                                           |
@@ -173,10 +211,12 @@ For company recipients, use `company_name` instead of `first_name`/`last_name`:
 | currency                                 | string | Transfer currency (EUR)                              |
 | estimated_amounts                        | array  | Array of per-token quote objects                     |
 | estimated_amounts[].amount               | number | Human-readable token amount to debit                 |
-| estimated_amounts[].precise_amount       | string | Wei-denominated precise amount                       |
+| estimated_amounts[].precise_amount       | string | Amount in the token's smallest unit (exponent is the token's `decimals`, not always 18) |
 | estimated_amounts[].token_address        | string | Token contract address                               |
 | estimated_amounts[].token_symbol         | string | Token symbol (e.g., WEUR)                            |
 | estimated_amounts[].rate                 | number | Exchange rate (token per EUR)                        |
+| estimated_amounts[].fee_amount           | number | Per-token fee (token precision); absent when no per-token fee is reported |
+| estimated_amounts[].fee_precise_amount   | string | Same fee in the token's smallest unit; absent under the same condition |
 
 ---
 
@@ -192,14 +232,14 @@ Execute a SEPA transfer using the estimation ID or a direct amount.
 |---------------|----------|------------------------------------|
 | Authorization  | Yes      | Bearer `{access_token}`           |
 | Content-Type   | Yes      | `application/json`                 |
-| X-User-Address | Yes      | The user's EOA wallet address      |
+| X-User-Wallet  | Yes      | The user's EOA wallet address      |
 | X-Chain-Id     | Yes      | The blockchain chain ID            |
 
 **Request Body (with estimation):**
 
 ```json
 {
-  "account_id": "uuid-bank-account-id",
+  "account_id": "{account_id}:{details_id}",
   "token_address": "0x379e120C1921bFD8f5E0A1a3C699e7e800b66606",
   "estimation_id": "uuid-estimation-id",
   "recipient": {
@@ -217,9 +257,9 @@ Execute a SEPA transfer using the estimation ID or a direct amount.
 
 ```json
 {
-  "account_id": "uuid-bank-account-id",
+  "account_id": "{account_id}:{details_id}",
   "token_address": "0x379e120C1921bFD8f5E0A1a3C699e7e800b66606",
-  "amount": "100.00",
+  "amount": 100.00,
   "recipient": {
     "first_name": "Jane",
     "last_name": "Smith"
@@ -235,14 +275,15 @@ Execute a SEPA transfer using the estimation ID or a direct amount.
 
 | Field          | Type   | Required | Description                                          |
 |----------------|--------|----------|------------------------------------------------------|
-| account_id     | string | Yes      | The SEPA bank account ID                             |
-| token_address  | string | Yes      | WEUR token contract address                          |
+| account_id     | string | Yes      | The SEPA bank account ID (`{account_id}:{details_id}`) |
+| token_address  | string | Yes      | Token to charge from the user's balance (must be in `estimated_amounts` when using an estimation) |
 | estimation_id  | string | No*      | Estimation ID from the estimate step                 |
-| amount         | string | No*      | Direct amount (if not using estimation)              |
+| amount         | number | No*      | Fiat amount (if not using estimation; uses current market rates) |
+| reference      | string | No       | Payment reference                                    |
 | recipient      | object | Yes      | Recipient name details (same as estimate)            |
 | recipient_account | object | Yes   | Recipient bank details (same as estimate)            |
 
-*Either `estimation_id` or `amount` is required.
+*Provide either `estimation_id` or `amount`, not both. Recipient fields: `first_name` + `last_name` for a person, `company_name` for a business. The system picks `SepaOut1stParty` or `SepaOut3rdParty` by whether the recipient name matches the user's verified name.
 
 **Response (200 OK):**
 
@@ -257,6 +298,8 @@ The `id` is the activity ID for tracking the transfer progress via webhooks.
 ---
 
 ## ACH Bank Details
+
+ACH accounts are available to users residing in these 48 countries (plus all US states and territories): AD, AR, AU, AT, BE, BR, BG, CL, CO, CY, CZ, DK, EE, FI, FR, DE, GI, GR, HK, HU, IS, ID, IE, IT, LV, LT, LU, MY, MT, MX, MC, ME, NL, NO, PE, PL, PT, RO, SG, SK, ES, SE, CH, TW, TH, GB, US, VN. Check the `AchAccount` capability (`Active`, `ActivationNotStarted`, `InProgress`, `NotFulfilled`, `NotAvailable`) in `GET /api/v2/user`.
 
 ### Activate ACH Bank Account
 
@@ -280,7 +323,7 @@ Creates ACH bank account credentials (account number and routing number) for the
 }
 ```
 
-After activation, use `GET /api/v1/bank/accounts` to retrieve the full account details (account number, routing number). The response follows the same `accounts[]` structure as SEPA, with `details.account_number` and `details.routing_number`.
+After activation the capability becomes `InProgress` and a bank account webhook is sent when the account is ready. Then use `GET /api/v1/bank/accounts` to retrieve the full account details (account number, routing number). The response follows the same `accounts[]` structure as SEPA, with `details.account_number` and `details.routing_number`.
 
 ---
 
@@ -323,12 +366,12 @@ Estimate the cost and exchange rate for an ACH transfer.
 |------------------------------------------|--------|----------|----------------------------------|
 | recipient_account.account_number         | string | Yes      | Recipient bank account number    |
 | recipient_account.routing_number         | string | Yes      | ABA routing number               |
-| recipient_account.bank_name              | string | No       | Name of the recipient's bank     |
+| recipient_account.bank_name              | string | No (API reference) / Yes (ACH guide) | Name of the recipient's bank |
 | recipient_account.legal_address          | object | Yes      | Recipient's legal address        |
 | recipient_account.legal_address.line1    | string | Yes      | Street address                   |
 | recipient_account.legal_address.line2    | string | No       | Additional address info          |
 | recipient_account.legal_address.city     | string | Yes      | City                             |
-| recipient_account.legal_address.state    | string | No       | State/province code (required for US) |
+| recipient_account.legal_address.state    | string | No (API reference) / Yes for US (ACH guide) | State/province code |
 | recipient_account.legal_address.zip_code | string | Yes      | Postal/ZIP code                  |
 | recipient_account.legal_address.country  | string | Yes      | ISO 3166-1 alpha-2 country code  |
 
@@ -353,6 +396,8 @@ Uses the same response format as SEPA estimates:
   ]
 }
 ```
+
+`legal_address` is mandatory for ACH recipients (`recipient` and `recipient_account` are required on ACH estimates). The API reference schema marks `recipient_account.legal_address` as required in general, while the SEPA guide examples omit it.
 
 ---
 
@@ -408,9 +453,9 @@ SEPA and ACH transfers emit activity events as the transfer progresses through e
 
 **Steps:** Initiated → CryptoOut → Review → BankOut → Completed
 
-A transfer can also reach `Failed` or `Cancelled` status at any step.
+Activity `status` is `Pending`, `Completed` or `Failed` (`Cancelled` is not documented). SEPA activities have `type: Sepa`, ACH `type: AchPush`.
 
-See [wirex-baas-webhooks reference](../wirex-baas-webhooks/references/REFERENCE.md) for complete activity webhook payloads (event type: `activity.updated`, transfer type: `BankTransfer`).
+See [wirex-baas-webhooks reference](../wirex-baas-webhooks/references/REFERENCE.md) for complete activity webhook payloads (activity types `Sepa` / `AchPush`).
 
 ---
 
@@ -434,26 +479,22 @@ All errors follow the standard Wirex BaaS error format with nested `error_catego
 
 ### SEPA Error Codes
 
-| HTTP Status | Error Reason | Description |
-|-------------|-------------|-------------|
-| 400 | `ErrorNotSupported` | SepaAccount capability not active |
-| 400 | `ErrorNotSupported` | SepaOut capability not active |
-| 400 | `ErrorInvalidField` | Recipient IBAN is invalid |
-| 400 | `ErrorInvalidField` | Recipient BIC is invalid |
-| 400 | `ErrorExpired` | Estimation ID has expired |
-| 400 | `ErrorInvalidField` | Not enough WEUR balance |
-| 400 | `ErrorInvalidField` | Transfer exceeds allowed limits |
-| 400 | `ErrorNotSupported` | Recipient country not in SEPA zone |
+| Error Reason | Field / Description |
+|-------------|-------------|
+| `ErrorMissingField` / `ErrorInvalidField` / `ErrorNotFound` | `account_id`: required / invalid format / not found or not owned by user |
+| `ErrorMissingField` | `recipient`, `recipient_account.iban`, `recipient_account.bic`, `amount` (amount or `estimation_id` required) |
+| `ErrorInvalidField` | `recipient_account.iban` / `.bic` invalid format; `token_address` invalid |
+| `ErrorNotSupported` | `recipient`: capability (`SepaOut1stParty` / `SepaOut3rdParty`) not active |
+| `ErrorGeneral` (400) | Activation: "Account capability does not need activation or is not available"; wallet linking: "External provider wallet verification is not required for this account" |
+| `ErrorInvalidField` (400) | `chain` not numeric or unsupported (error reports the field as `chain_id`) |
+
+These endpoints never return `404`: a missing or ineligible resource is a `400`.
 
 ### ACH Error Codes
 
-| HTTP Status | Error Reason | Description |
-|-------------|-------------|-------------|
-| 400 | `ErrorNotSupported` | AchAccount capability not active |
-| 400 | `ErrorNotSupported` | AchOut capability not active |
-| 400 | `ErrorInvalidField` | Routing number is invalid |
-| 400 | `ErrorInvalidField` | Account number is invalid |
-| 400 | `ErrorMissingField` | legal_address is required for ACH |
-| 400 | `ErrorExpired` | Estimation ID has expired |
-| 400 | `ErrorInvalidField` | Not enough WUSD balance |
-| 400 | `ErrorInvalidField` | Transfer exceeds allowed limits |
+| Error Reason | Description |
+|-------------|-------------|
+| `ErrorNotFound` | User not found or not verified |
+| `ErrorInvalidStatus` | User account not active |
+| `ErrorInvalidField` | Invalid account type, or capability not available / does not need activation |
+| `ErrorMissingField` | `legal_address` and other required recipient fields |

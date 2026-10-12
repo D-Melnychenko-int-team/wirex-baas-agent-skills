@@ -1,6 +1,6 @@
 # Wirex BaaS Transfers — Recipients CRUD Reference
 
-Complete reference for recipient management: listing, filtering, creating, updating, and deleting recipients across all 6 payment types.
+Complete reference for recipient management: listing, filtering, creating, updating, and deleting recipients. The `type` enum has 16 payment-detail types: Crypto, Sepa, FasterPayment, Ach, Swift, Spei, Card, Pix, FpsHk, Imps, Instapay, BiFast, Nip, Ipp, Pse, CrossChainCrypto.
 
 ## Table of Contents
 
@@ -26,7 +26,7 @@ All recipient endpoints require the following headers:
 |---------------|----------|------------------------------------|
 | Authorization  | Yes      | Bearer `{access_token}`           |
 | Content-Type   | Yes      | `application/json`                 |
-| X-User-Address | Yes      | The user's EOA wallet address      |
+| X-User-Wallet  | Yes      | The user's EOA wallet address      |
 | X-Chain-Id     | Yes      | The blockchain chain ID            |
 
 ---
@@ -43,8 +43,11 @@ Retrieve a paginated list of all recipients.
 |------------|---------|----------|---------|--------------------------|
 | page_number | integer | No       | 0       | Page index (0-indexed)   |
 | page_size   | integer | No       | 25      | Items per page           |
+| sort        | string  | No       | name    | `name` (ascending) or `usage` (descending usage count) |
 
 **Response (200 OK):**
+
+> The guides show `items` + `total_count` / `page_number` / `page_size`; the API reference schema (`RecipientsResponse`) names the list `data`. Handle both.
 
 ```json
 {
@@ -145,7 +148,9 @@ Retrieve a single recipient by their unique ID.
 
 | Query Parameter | Type   | Required | Description                                           |
 |----------------|--------|----------|-------------------------------------------------------|
-| type           | string | Yes      | One of: Card, Sepa, Ach, Crypto, FasterPayment, Swift |
+| type           | string | Yes      | A payment-detail type from the 16-value enum above (e.g. Card, Sepa, Ach, Crypto, FasterPayment, Swift) |
+
+All filter endpoints also accept `page_number`, `page_size` and `sort` (`name` | `usage`).
 
 **Example:**
 
@@ -211,6 +216,14 @@ GET /api/v1/recipients/filter/name?name=Alex
 ```
 
 Returns all recipients whose first name, last name, company name, or nick name contains "Alex".
+
+### Browse by Catalog Index
+
+**GET /api/v1/recipients/filter/catalog?catalog_index=A** returns recipients whose full name begins with the given letter (page_size default 25, max 50; `sort` = `name` | `usage`).
+
+### Record Usage
+
+**POST /api/v1/recipients/{recipient_id}/usage** increments the usage counter that drives `sort=usage`. No body. It is **not** incremented automatically when a transfer is sent; call it when the user selects a recipient.
 
 ---
 
@@ -285,7 +298,7 @@ Create a new recipient with personal information and payment details.
   "type": "Crypto",
   "currencies": ["USD"],
   "crypto": {
-    "address": "0x742d35Cc6634C0532925a3b844Bc9e7595f7BABA",
+    "recipient_address": "0x742d35Cc6634C0532925a3b844Bc9e7595f7BABA",
     "network": "Base"
   }
 }
@@ -300,7 +313,7 @@ Create a new recipient with personal information and payment details.
   "is_business": false,
   "type": "FasterPayment",
   "currencies": ["GBP"],
-  "faster_payment": {
+  "faster_payments": {
     "account_number": "12345678",
     "sort_code": "200000"
   }
@@ -319,6 +332,8 @@ Create a new recipient with personal information and payment details.
   "swift": {
     "iban": "JP1234567890123456789012",
     "bic": "BOTKJPJT",
+    "bank_name": "Bank of Tokyo",
+    "bank_country": "JP",
     "legal_address": {
       "line1": "1-2-3 Shibuya",
       "city": "Tokyo",
@@ -338,10 +353,12 @@ Create a new recipient with personal information and payment details.
 | company_name | string   | Yes*     | Recipient company name (business)                |
 | is_business  | boolean  | Yes      | `false` for personal, `true` for business        |
 | nick_name    | string   | No       | Display name (max 127 chars); can replace personal info for Crypto type |
-| type         | string   | Yes      | Payment type (Card, Sepa, Ach, Crypto, FasterPayment, Swift) |
+| type         | string   | Yes      | Payment type (one of the 16 enum values) |
 | currencies   | string[] | Yes      | At least one currency code (e.g., `["EUR"]`)     |
 
 *Either (`first_name` + `last_name`) or `company_name` is required.
+
+Request object key matches the type: `card`, `sepa`, `ach`, `crypto`, `faster_payments` (request) / `faster_payment` (response), `swift`, `spei`, `pix`, `fps_hk`, `imps`, `instapay`, `bi_fast`, `nip`, `ipp`, `pse`, `cross_chain_crypto`. Exactly the object matching `type` must be present.
 
 **Response (201 Created):**
 
@@ -397,13 +414,7 @@ Add additional payment details to an existing recipient. A single recipient can 
 
 The body structure depends on the payment type. Include `type`, `currencies`, and the type-specific nested object (see [Payment Type Fields](#payment-type-fields) below).
 
-**Response (201 Created):**
-
-```json
-{
-  "id": "uuid-new-pd"
-}
-```
+**Response:** the guides show `{ "id": "uuid-new-pd" }`; the API reference returns a full payment-details object (`id`, `type`, `currencies`, type object).
 
 ---
 
@@ -447,6 +458,12 @@ Update the recipient's personal information (name, company name).
 Returns the full recipient object with `id`, `personal_info`, and `payment_details` array.
 
 ---
+
+## Update Recipient and Payment Details (v2)
+
+### PUT /api/v2/recipients/{recipient_id}
+
+Replaces personal info and one payment detail in one call. Body: same shape as `POST /api/v2/recipients` (`first_name`/`last_name` or `company_name`, `is_business`, `nick_name`, `type`, `currencies`, and exactly the matching type object; omitting it fails with `missing_for_type`). Returns the full recipient.
 
 ## Update Payment Details
 
@@ -501,7 +518,7 @@ Remove specific payment details from a recipient.
 
 **Response (204 No Content):**
 
-No body returned.
+No body returned (the API reference lists `200` with an empty object).
 
 ---
 
@@ -519,7 +536,7 @@ Delete a recipient and all associated payment details.
 
 **Response (204 No Content):**
 
-No body returned.
+No body returned (the API reference lists `200` with an empty object).
 
 ---
 
@@ -560,8 +577,10 @@ Each payment type requires different fields when creating or updating payment de
 
 | Field   | Type   | Required | Description                                        |
 |---------|--------|----------|----------------------------------------------------|
-| address | string | Yes      | Blockchain address                                 |
-| network | string | Yes      | Network name (Ethereum, Base, Arbitrum, Polygon, etc.) |
+| recipient_address | string | Yes | Blockchain address. Replaces the former `address`; both accepted and returned, must match if both supplied |
+| network | string | Yes      | Network name (e.g. Base, Ethereum)                 |
+
+`nick_name` can replace first/last/company name for Crypto recipients. `CrossChainCrypto` takes `address`, `network`, optional `tag` (destination tag/memo, e.g. XRP, Stellar); non-EVM address formats (Solana, Tron, Bitcoin) are supported.
 
 ### FasterPayment
 
@@ -576,12 +595,26 @@ Each payment type requires different fields when creating or updating payment de
 |------------------------------|--------|----------|----------------------------------|
 | iban                         | string | Yes      | International Bank Account Number|
 | bic                          | string | Yes      | SWIFT/BIC code                   |
+| bank_name                    | string | Yes      | Recipient's bank name            |
+| bank_country                 | string | Yes      | Bank country (ISO 3166-1 alpha-2)|
 | legal_address                | object | Yes      | Recipient's legal address        |
 | legal_address.line1          | string | Yes      | Street address                   |
 | legal_address.line2          | string | No       | Additional address info          |
 | legal_address.city           | string | Yes      | City                             |
 | legal_address.zip_code       | string | Yes      | Postal/ZIP code                  |
 | legal_address.country        | string | Yes      | ISO 3166-1 alpha-2 country code  |
+
+### Other types (from the API reference, `POST /api/v2/recipients`)
+
+| Type | Required fields |
+|------|-----------------|
+| Spei | `clabe`, `legal_address`, `national_id_number` (CURP or RFC) |
+| Pix | `pix_key`, `pix_key_type` (CPF, CNPJ, EMAIL, PHONE, EVP), `national_id_number`, `recipient_name`, `legal_address` |
+| FpsHk | `bank_code`, `fps_id`, `fps_id_type` (MOBILE, EMAIL, FPS_ID), `recipient_name`, `legal_address` |
+| Imps | `account_number`, `ifsc_code`, `destination_country`, `recipient_name` (`bank_name` optional) |
+| Instapay / Nip / BiFast | `account_number`, `bank_code`, `destination_country`, `recipient_name` (`bank_name` optional) |
+| Ipp | `iban`, `destination_country`, `recipient_name` (`bank_name` optional) |
+| Pse | `account_number`, `account_type` (SAVINGS, CHECKING), `bank_code`, `destination_country`, `document_number`, `document_type` (CC, NIT, CE, PASSPORT), `recipient_name` |
 
 ---
 
@@ -590,9 +623,9 @@ Each payment type requires different fields when creating or updating payment de
 | Type           | Key Identifier           | Currency | Region         |
 |----------------|--------------------------|----------|----------------|
 | Card           | card_id (token)          | Any      | Global (Visa/MC)|
-| Sepa           | iban + bic               | EUR      | 28 EU countries|
-| Ach            | routing_number + account | USD      | 34+ countries  |
-| Crypto         | address + network        | Crypto   | Global         |
+| Sepa           | iban + bic               | EUR      | SEPA zone      |
+| Ach            | routing_number + account | USD      | US ACH         |
+| Crypto         | recipient_address + network | Crypto | Global        |
 | FasterPayment  | account_number + sort_code| GBP     | UK             |
 | Swift          | iban + bic               | Various  | Global         |
 
@@ -602,6 +635,6 @@ Each payment type requires different fields when creating or updating payment de
 
 **Endpoint:** `/v2/webhooks/recipients`
 
-Triggered when a recipient is created, updated, or deleted. Event types: `recipient.created`, `recipient.updated`, `recipient.deleted`.
+**POST {your_webhook_base_url}/v2/webhooks/recipients** is delivered when a recipient is created, updated, or deleted; the payload has the recipient shape (`id`, `personal_info`, `payment_details[]`).
 
 See [wirex-baas-webhooks reference](../wirex-baas-webhooks/references/REFERENCE.md) for complete recipient webhook payloads.
