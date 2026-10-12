@@ -164,6 +164,28 @@ ASSERTIONS = [
     ("wirex-baas-sandbox", "3fCeoWq6FOtKJBZiyorXnxE41Dqp2zKB", "sandbox client_id"),
     ("wirex-baas-sandbox", "api-docs", "interactive docs URL"),
     ("wirex-baas-sandbox", "Content-Type", "content type in examples"),
+    # ── Corporate ──
+    ("wirex-baas-corporate", "api-business.wirexapp.tech", "corporate sandbox URL"),
+    ("wirex-baas-corporate", "api-business.wirexapp.com", "corporate production URL"),
+    ("wirex-baas-corporate", "/api/v1/employees/invite", "employee invite endpoint"),
+    ("wirex-baas-corporate", "KYB", "KYB verification"),
+    # ── SDK ──
+    ("wirex-baas-sdk", "@wirexapp/wpay-baas-sdk", "SDK package name"),
+    ("wirex-baas-sdk", "createSDK", "SDK factory"),
+    ("wirex-baas-sdk", "companyId", "companyId option"),
+    ("wirex-baas-sdk", "getMainWalletClient", "main wallet client option"),
+    # ── PCI SDK ──
+    ("wirex-baas-pci-sdk", "@wirexapp/card-topup-web", "top-up collect package"),
+    ("wirex-baas-pci-sdk", "@wirexapp/card-oct-web", "payout collect package"),
+    ("wirex-baas-pci-sdk", "@wirexapp/card-reveal-web", "card reveal package"),
+    ("wirex-baas-pci-sdk", "frame-src", "CSP frame-src rule"),
+    ("wirex-baas-pci-sdk", "getBearerToken", "user token callback"),
+    # ── External Authorization ──
+    ("wirex-baas-external-auth", "/external/authorize", "authorize endpoint"),
+    ("wirex-baas-external-auth", "/external/settle", "settle endpoint"),
+    ("wirex-baas-external-auth", "500ms", "max response time"),
+    ("wirex-baas-external-auth", "unique_operation_id", "idempotency key"),
+    ("wirex-baas-external-auth", "/api/v1/transactions/risk-assessment", "transaction screening endpoint"),
 ]
 
 

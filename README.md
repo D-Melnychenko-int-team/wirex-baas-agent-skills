@@ -14,6 +14,10 @@ Agent skills for **Wirex BaaS** — a blockchain financial services platform pro
 | `wirex-baas-transfers` | SEPA/ACH bank transfers, Push-to-Card, recipient management |
 | `wirex-baas-webhooks` | All webhook endpoints, payload formats, activity history feed |
 | `wirex-baas-sandbox` | Helper API for test simulations (mint tokens, SEPA/ACH/card transactions) |
+| `wirex-baas-corporate` | Corporate API: KYB onboarding, employees and roles, corporate wallets, cards, transfers, webhooks |
+| `wirex-baas-sdk` | TypeScript/JavaScript SDK `@wirexapp/wpay-baas-sdk`: setup, auth, BaaS API, on-chain wallet operations |
+| `wirex-baas-pci-sdk` | PCI Compliant browser SDK: collect top-up/payout cards, reveal card details, 3DS element in Wirex iframes |
+| `wirex-baas-external-auth` | External Authorization model: partner authorize/settle endpoints, Master Account settlement, screening |
 
 ## Installation
 

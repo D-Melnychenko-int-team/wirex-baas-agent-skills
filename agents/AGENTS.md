@@ -37,3 +37,19 @@ Webhooks and activity history — receive real-time event notifications and quer
 ### wirex-baas-sandbox
 Sandbox testing — simulate real-world scenarios in the development environment. Helper API for minting test tokens, simulating SEPA/ACH transactions, and card transactions (POS/EPOS/ATM/credit). Includes sandbox test credentials and token addresses.
 - [SKILL.md](../skills/wirex-baas-sandbox/SKILL.md)
+
+### wirex-baas-corporate
+Corporate API — business accounts. Covers corporate registration and KYB, on-chain registration, employees, teams, roles and permissions, corporate wallets and balances, cards, bank and bulk transfers, recipients, FX, webhooks, activity history and statements.
+- [SKILL.md](../skills/wirex-baas-corporate/SKILL.md)
+
+### wirex-baas-sdk
+TypeScript/JavaScript SDK `@wirexapp/wpay-baas-sdk` — installation, createSDK options, authentication paths, BaaS API modules, Account Abstraction wallet operations, crypto transfers and error classes.
+- [SKILL.md](../skills/wirex-baas-sdk/SKILL.md)
+
+### wirex-baas-pci-sdk
+PCI Compliant browser SDK — collect top-up and payout cards, reveal issued card details and mount the 3DS challenge inside Wirex-served iframes. Covers setup, CSP, appearance, React bindings and events.
+- [SKILL.md](../skills/wirex-baas-pci-sdk/SKILL.md)
+
+### wirex-baas-external-auth
+External Authorization model — partner-managed balances with Master Account settlement. Covers the authorize/settle endpoints the partner implements, timeouts and decision rules, user registration, card transactions and mandatory transaction screening.
+- [SKILL.md](../skills/wirex-baas-external-auth/SKILL.md)
