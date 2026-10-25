@@ -136,17 +136,25 @@ Withdrawals run fully on-chain from the user's Smart Wallet, without Wirex backe
 | Token transfers   | 3 seconds |
 | Account changes   | 24 hours  |
 
-The delay protects Wirex from frontrunning-based fraud. The SDK docs describe the minimum delay as about 3 seconds in sandbox and longer in production.
+The delay protects Wirex from frontrunning-based fraud.
 
-Other `sdk.crypto.transfer` methods: `makeErc20TransferSynthetic(params)` (transfer unified tokens WUSD/WEUR) and `batchTransfer(params)` (several transfers in one UserOperation).
+Other `sdk.crypto.transfer` methods: `makeErc20TransferSynthetic(params)` (send synthetic tokens directly, no unwrap, no delay policy), `makeTransferWithoutDelayPolicy(params)` (unwrap a synthetic and send its base token in one op; the FX swap payment leg) and `batchTransfer({ tokenAddress, responses })` (several transfers in one batch).
 
 ### Wirex SDK Methods
 
-The Wirex SDK (`@wirexapp/wpay-baas-sdk`) provides two approaches. Methods are namespaced under `sdk.crypto.transfer`:
+The Wirex SDK (`@wirexapp/wpay-baas-sdk`) provides single-call and two-step approaches. Methods are namespaced under `sdk.crypto.transfer`; `tokenAddress` is a **synthetic** token (e.g. WUSD), unwrapped before its base token is sent.
 
 #### Single-call (full transfer)
 
 ```typescript
+// on-chain only: request -> wait out the delay -> final execution, no backend polling
+const finalTxHash = await sdk.crypto.transfer.makeErc20TransferFull({
+  tokenAddress: "0x...",
+  recipientAddress: "0x...",
+  amount: 100
+});
+
+// backend-driven: polls withdrawal requests until valid_after
 await sdk.crypto.transfer.makeFullErc20Transfer({
   tokenAddress: "0x...",
   recipientAddress: "0x...",
@@ -155,7 +163,7 @@ await sdk.crypto.transfer.makeFullErc20Transfer({
 // result: { firstPartTxHash, finalTxHash, success }
 ```
 
-This method handles both phases internally, waiting for the delay to pass before executing.
+Both handle the two phases internally, waiting for the delay to pass before executing.
 
 #### Two-step (manual control)
 

@@ -25,7 +25,7 @@ The **EOA (Externally Owned Account)** is the signer/owner. The `user_address` s
 
 ### Option 1: Wirex SDK (`@wirexapp/wpay-baas-sdk`)
 
-Requires Node.js >= 18 and `viem ^2.0.0` (peer dependency).
+Requires Node.js >= 18 and `viem ^2.49.3` (peer dependency).
 
 ```bash
 npm install @wirexapp/wpay-baas-sdk viem
@@ -59,6 +59,7 @@ const sdk = await createSDK({
 | `sdk.crypto.accountAbstraction` | `signInExecutor()` | Install executor only |
 | `sdk.crypto.accountContract` | `isWalletInAccounts()` | Check registration in the retail Accounts contract |
 | `sdk.crypto.accountContract` | `registerInAccounts()` | Register wallet (retail) |
+| `sdk.crypto.onboarding` | `allInOneStepOnboarding()` | Executor install + policy switch + Accounts registration in one UserOperation (one signature); only when neither module is installed |
 
 #### Deployment Flow
 
@@ -67,8 +68,12 @@ const sdk = await createSDK({
 const policyInstalled = await sdk.crypto.accountAbstraction.isPolicyInstalled();
 const executorInstalled = await sdk.crypto.accountAbstraction.isExecutorInstalled();
 
-// 2. Install policy + executor in one UserOperation (if needed)
-if (!policyInstalled || !executorInstalled) {
+// 2a. Fresh wallet: everything in one UserOperation, the user signs once
+if (!policyInstalled && !executorInstalled) {
+  await sdk.crypto.onboarding.allInOneStepOnboarding(); // also registers in Accounts
+}
+// 2b. Otherwise install the missing modules
+else if (!policyInstalled || !executorInstalled) {
   await sdk.crypto.accountAbstraction.signInPolicyAndExecutor();
 }
 
