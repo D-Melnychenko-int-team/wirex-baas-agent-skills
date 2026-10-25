@@ -389,6 +389,20 @@ Wirex validates every section against the definition, including conditional item
 
 > Documented only in the guides (`retail-kyc-shared`, `retail-kyc-api`); the API reference has no page for this endpoint yet.
 
+**Observed live in sandbox (2026-10-25)** -- differs from the docs in places:
+
+| Case | Result |
+|------|--------|
+| Full valid body, Trust-model company, BDD-only user | `200 {}`; levels stay `BDD` (matches the docs: SDD not complete) |
+| Full valid body, Full-model company, user with BDD+SDD | `200 {}`; no new level or status change seen within 60 s (the docs promise a move to the questionnaire's level + webhook) |
+| Full valid body, company registered with the older `Wirex` model | `200 {}` -- the model refusal from the table above was not returned |
+| Same submission again | `200 {}` (resubmission allowed) |
+| Option value not in the list (`sourceOfFunds` = `Lottery`) | `200 {}` -- option values are not validated |
+| No `questionary_id` | `400 ErrorGeneral` "Request failed validation", `error_details` `[{ "key": "questionary_id", "details": "questionary_id is required" }]` |
+| `Employed / Self Employed` without `occupation`; `I am a PEP` without `personalPepExplanation` | `400 ErrorGeneral` "Missing required questionary answer", `error_details` name `section_id` + `item_id` (+ `failed_method: SubmitQuestionary`) |
+
+Send option values exactly as listed: the API accepts any string, but Wirex reads answers by value.
+
 ---
 
 ## Field Validation Patterns

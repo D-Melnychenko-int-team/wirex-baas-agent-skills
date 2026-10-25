@@ -152,6 +152,8 @@ Retrieve a single recipient by their unique ID.
 
 All filter endpoints also accept `page_number`, `page_size` and `sort` (`name` | `usage`).
 
+**Observed live in sandbox (2026-10-25):** all four filters return `{ "data": [...] }`. `type` is case-sensitive (`Sepa` works, `SEPA` -> `400 ErrorGeneral` "Details type was not provided or invalid"); omitting it -> `400 ErrorMissingField` "type is required". `filter/type` lags behind writes: a recipient created a moment earlier was missing from `filter/type` but already present in `filter/currency`, `filter/name` and `filter/catalog`; it appeared in `filter/type` within 15 s.
+
 **Example:**
 
 ```
@@ -215,7 +217,7 @@ GET /api/v1/recipients/filter/currency?currency=EUR
 GET /api/v1/recipients/filter/name?name=Alex
 ```
 
-Returns all recipients whose first name, last name, company name, or nick name contains "Alex".
+Returns all recipients whose first name, last name, company name, or nick name contains "Alex". Live sandbox check: `name=bo` found "Bob Johnson" (case-insensitive).
 
 ### Browse by Catalog Index
 
