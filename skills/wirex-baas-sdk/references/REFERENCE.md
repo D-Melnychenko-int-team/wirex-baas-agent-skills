@@ -45,169 +45,111 @@ function getPrivyWalletClient(wallet: ConnectedWallet): MainWalletClient {
 }
 ```
 
-## sdk.auth
+## `sdk.auth` — Authentication Service
 
 | Method | Description |
-|--------|-------------|
+| --- | --- |
 | `login(params)` | Login retail user (Privy or JWT) |
 | `loginCompany(params)` | Login company/corporation |
 | `registerUser(params)` | Register retail user |
 | `registerCompany(params)` | Register company/corporation |
-| `isAuthenticated()` | Valid token held |
-| `getAccessToken()` | Token or `null` if expired |
-| `ensureAuthenticated()` | Throws `AuthenticationError` |
-| `getAuthHeaders()` | `{ Authorization, X-User-Wallet }` |
-| `getUserWallet()` / `setUserWallet(wallet)` | Read / set user wallet |
-| `setAuthState(response, wallet?)` | Restore auth state |
-| `clearAuth()` | Logout |
+| `getAccessToken()` | Get current access token (returns `null` if expired) |
+| `isAuthenticated()` | Check if user is authenticated |
+| `getUserWallet()` | Get current user wallet address |
+| `setUserWallet(wallet)` | Set user wallet address |
+| `setAuthState(response, userWallet?)` | Manually set auth state from an auth response |
+| `ensureAuthenticated()` | Throws `AuthenticationError` if not authenticated |
+| `clearAuth()` | Clear all authentication state |
+| `getAuthHeaders()` | Get `Authorization` and `X-User-Wallet` headers |
 
-## sdk.api.baas.token
+**Authentication Parameters:**
 
-| Method | Description |
-|--------|-------------|
-| `getToken(request)` | Exchange `client_credentials` for access token; returns `{ access_token, token_type: 'Bearer', expires_at }` |
-
-## sdk.api.baas.user
-
-| Method | Description |
-|--------|-------------|
-| `getUser()` | Current user (v1) |
-| `getUserV2()` | Current user with `capabilities` array |
-| `createUser(request)` | `{ email, country, wallet_address }` |
-| `createRetailUser(request)` | Create retail user |
-| `validateRetailUser()` | Validate retail user |
-| `authorizeUser(params)` | Returns PSI token |
-| `updatePhoneNumber(request)` / `confirmPhoneNumber(request)` | Phone update / OTP confirm |
-| `uploadDocument(formData)` | Upload KYC document |
-| `getVerificationToken()` / `getVerificationLink()` | Wirex-hosted KYC |
-| `getSharingToken(request)` / `setSharingToken(request)` | SumSub sharing token |
-| `updateFreshdeskId(request)` | Update Freshdesk ID |
-
-## sdk.api.baas.wallet
-
-| Method | Description |
-|--------|-------------|
-| `getWallet(request?)` | Wallet by ID or default; `{ balances: [{ token_symbol, token_address, balance }] }` |
-| `getWallets()` | All wallets |
-| `createGlobalWallet(request)` | Global (multi-chain deposit) wallet |
-
-## sdk.api.baas.cards
-
-| Method | Description |
-|--------|-------------|
-| `issueVirtualCard(request)` | `{ card_name }` |
-| `issuePlasticCard(request)` | Physical card |
-| `getCards(request?)` | `{ data: Card[] }` |
-| `getCard(cardId)` | `{ id, status, card_data: { card_name, format } }` |
-| `getCardTransactions(request?)` | Card transactions |
-| `activateCard(cardId, request)` | Activate |
-| `blockCard(cardId)` / `unblockCard(cardId)` | Block / unblock |
-| `closeCard(cardId)` | Terminal state |
-| `getCardDetails(cardId, request)` | PAN and expiry, action token |
-| `getCardCvv(cardId, request)` | CVV, action token |
-| `getCardPin(cardId, request)` | PIN, action token (physical) |
-| `changeCardLimit(cardId, request)` | Spending limit |
-| `changeCardName(cardId, request)` | Rename |
-| `estimateCardTransfer(request)` / `executeCardTransfer(request)` | Card top-up |
-| `estimateCardWithdrawal(cardId, request)` / `executeCardWithdrawal(cardId, request)` | Withdrawal from card |
-| `getActive3dsRequests()` | Pending 3DS challenges (array) |
-| `approve3dsRequest(transactionId)` / `decline3dsRequest(transactionId)` | 3DS decision |
-| `getDeliveryCountries()` / `getDeliveryMethods(country)` | Physical delivery |
-| `getOrderFees(type, country)` | Order fees |
-| `createOrderFeesInvoice(type, country, request)` | Fee invoice |
-
-## sdk.api.baas.confirmation
-
-| Method | Description |
-|--------|-------------|
-| `requestSms(request)` | `{ action_type }` -> `{ session_id }` |
-| `verifySms(request)` | `{ session_id, code }` -> `{ token }` |
-| `verifySignature(request)` | Verify signature for action confirmation |
-
-## sdk.api.baas.bank
-
-| Method | Description |
-|--------|-------------|
-| `getAccounts(request?)` | `{ data: BankAccount[] }` |
-| `activateAccount(request)` | Activate bank account |
-| `estimateTransfer(request)` / `executeTransfer(request)` | Bank transfer |
-| `estimateCorridorTransferV2(corridor, request)` / `executeCorridorTransferV2(corridor, request)` | SEPA / corridor transfer |
+All auth methods accept either Privy tokens or a JWT authorization token:
 
 ```typescript
-const estimate = await sdk.api.baas.bank.estimateCorridorTransferV2('SEPA', {
-  destination_amount: 100,
-  recipient_id: recipientId,
-  recipient_payment_details_id: paymentDetailsId,
-  account_id: eurAccountId,
-});
-// -> { estimation_id, fee, ... }
+// Option 1: Privy authentication
+{
+  privy: {
+    accessToken: string;   // Privy access token
+    identityToken: string; // Privy identity token
+  }
+}
+
+// Option 2: JWT authentication
+{
+  authorizationToken: string; // Your JWT token
+}
 ```
 
-## sdk.api.baas.recipients
-
-| Method | Description |
-|--------|-------------|
-| `getRecipients(request?)` | `{ data: Recipient[] }` |
-| `getRecipientById(recipientId)` | `{ id, personal_info: { first_name, last_name } }` |
-| `getRecipientsByCatalog` / `ByCurrency` / `ByName` / `ByType` `(request)` | Filters |
-| `createRecipient(request)` / `createRecipientV2(request)` | Create |
-| `updateRecipient(recipientId, request)` / `deleteRecipient(recipientId)` | Update / delete |
-| `createRecipientPaymentDetails(recipientId, request)` | Add payment details |
-| `updateRecipientPaymentDetails(recipientId, detailsId, request)` | Update |
-| `deleteRecipientPaymentDetails(recipientId, detailsId)` | Delete |
-| `incrementRecipientUsage(recipientId)` | Usage counter |
+**Company Registration Parameters:**
 
 ```typescript
-const recipient = await sdk.api.baas.recipients.createRecipient({ first_name: 'John', last_name: 'Doe', is_business: false });
-await sdk.api.baas.recipients.createRecipientPaymentDetails(recipient.id, {
-  type: 'Sepa', currencies: ['EUR'], sepa: { iban: 'DE89370400440532013000', bic: 'COBADEFFXXX' },
-});
+interface RegisterCompanyParams {
+  privy?: PrivyAuth;
+  authorizationToken?: string;
+  companyAddress: string;
+  companyName: string;
+  registrationCountry: string;
+  registrationNumber: string;
+}
 ```
 
-## sdk.api.baas.activity / rates / config / withdrawal
+## `sdk.crypto.wallet` — Wallet Service
 
 | Method | Description |
-|--------|-------------|
-| `activity.getFeed(request?)` | `{ data: Activity[] }`; params `page_number`, `page_size` |
-| `activity.getById(request)` | One item |
-| `activity.getFullStatement(request)` | `{ start, end }` Unix seconds |
-| `activity.getRequestedErcWithdrawals()` | Pending ERC-20 withdrawal requests |
-| `rates.getRates(request)` | Exchange rates |
-| `config.getConfig()` | Client app config |
-| `sdk.api.withdrawal.getWithdrawalRequests()` | Pending ERC-20 withdrawals (phase 2 `call_data`) |
-
-## sdk.crypto.wallet
-
-| Method | Description |
-|--------|-------------|
-| `getSmartWalletAddress()` | Smart (AA) wallet address |
-| `getSmartWalletClient()` | Kernel client with ExecutionDelayPolicy |
-| `getSmartWalletClientWithoutPolicy()` | Kernel client without policy |
-| `getSmartAccountSigner()` | Smart Account signer |
-| `getMainWalletClient()` | Main (EOA) wallet client |
-| `sendUserOperationsAndWaitReceipt(callData, client?)` | Send UserOperation, wait for receipt |
-| `sendUserOperationsWithNonceAndWaitReceipt(callData, nonce)` | With specific nonce |
+| --- | --- |
+| `getSmartWalletAddress()` | Get Smart Wallet address |
+| `getSmartWalletClient()` | Get Kernel client with Policy |
+| `getSmartWalletClientWithoutPolicy()` | Get Kernel client without Policy |
+| `getSmartAccountSigner()` | Get signer for Smart Account |
+| `getMainWalletClient()` | Get main wallet client |
+| `sendUserOperationsAndWaitReceipt(callData, smartWalletClient?, config?)` | Send user operations and wait for receipt |
+| `sendUserOperationsWithNonceAndWaitReceipt(callData, nonce, config?)` | Send user operations with specific nonce |
 | `invalidateLocalCache()` | Clear cached wallet clients |
 
-## sdk.crypto.accountAbstraction / accountContract
+`config` on both send methods is `{ waitOnChainBlocks?: number; applyUnwrapGasFloor?: boolean }`. `applyUnwrapGasFloor` estimates the UserOperation first and raises `callGasLimit` to a gas floor when the estimate comes back lower. The transfer service sets it for the batches that unwrap a synthetic token before transferring (`makeErc20TransferFull` execution step, `makeErc20TransferFinal`, `makeTransferWithoutDelayPolicy`); plain transfers, policy installs and batch transfers keep the bundler estimate.
+
+## `sdk.crypto.accountAbstraction` — Account Abstraction Service
 
 | Method | Description |
-|--------|-------------|
-| `isPolicyInstalled()` | `ExecutionDelayPolicy` installed as root validator |
-| `isExecutorInstalled()` | `FundsManagementExecutor` installed |
-| `signInPolicyAndExecutor()` / `signInPolicy()` / `signInExecutor()` | Install both / policy / executor |
-| `isWalletInAccounts()` / `registerInAccounts()` | Retail Accounts contract |
-| `isWalletInCorporateAccounts()` / `registerInCorporateAccounts()` | Corporate (B2B) |
+| --- | --- |
+| `isPolicyInstalled()` | Check if Execution Delay Policy is installed |
+| `isExecutorInstalled()` | Check if Funds Management Executor is installed |
+| `signInPolicyAndExecutor()` | Install Policy and Executor together |
+| `signInPolicy()` | Install Policy only |
+| `signInExecutor()` | Install Executor only |
+| `getExecutorInstallCall()` | Executor install as a batchable call (used by onboarding) |
+| `getPolicyInstallCall()` | Policy install as a batchable call (used by onboarding) |
 
-## sdk.crypto.transfer
+## `sdk.crypto.accountContract` — Account Contract Service
 
 | Method | Description |
-|--------|-------------|
-| `makeFullErc20Transfer(params)` | Both phases in one call |
-| `makeErc20TransferFirstPart(params)` | Phase 1: submit withdrawal request |
-| `makeErc20TransferFinal(callData)` | Phase 2: execute after delay |
-| `makeErc20TransferSynthetic(params)` | Unified tokens (WUSD / WEUR) |
-| `batchTransfer(params)` | Several transfers in one UserOperation |
+| --- | --- |
+| `isWalletInAccounts()` | Check if wallet is registered in Accounts contract |
+| `registerInAccounts()` | Register wallet in Accounts contract (retail) |
+| `isWalletInCorporateAccounts()` | Check if wallet is registered in Corporate Accounts contract |
+| `registerInCorporateAccounts()` | Register wallet in Corporate Accounts contract (B2B) |
+| `getAccountRegistrationCall()` | Accounts registration as a batchable call (used by onboarding) |
+
+## `sdk.crypto.onboarding` — Onboarding Service
+
+| Method | Description |
+| --- | --- |
+| `allInOneStepOnboarding()` | Executor install + policy switch + Accounts registration in a single UserOperation, signed by the pre-policy client. Use only when neither the executor nor the policy is installed; otherwise run the per-step methods. |
+
+## `sdk.crypto.transfer` — Transfer Service
+
+| Method | Description |
+| --- | --- |
+| `makeErc20TransferFull(params)` | Full transfer in one call: `request(...)` → wait out the ExecutionDelayPolicy delay on-chain → submit the final execution under its custom nonce. No backend/withdrawal-request polling. |
+| `makeFullErc20Transfer(params)` | Full transfer driven by the backend: firstPart → poll withdrawal requests and wait for `valid_after` → final. Requires the Withdrawal API. |
+| `makeErc20TransferFirstPart(params)` | First part only: submit the ExecutionDelayPolicy `request(...)` (creates the withdrawal request) |
+| `makeErc20TransferFinal(callData)` | Second part only: complete the transfer with the request's calldata under its custom nonce |
+| `makeErc20TransferSynthetic(params)` | Transfer synthetic tokens directly (no unwrap, no delay policy) |
+| `makeTransferWithoutDelayPolicy(params)` | Unwrap a synthetic and transfer its base token in a single op, bypassing the ExecutionDelayPolicy. Used for the on-chain payment leg of an FX swap. |
+| `batchTransfer(params)` | Execute multiple transfers in a batch |
+
+**Transfer Parameters:**
 
 ```typescript
 interface Erc20TransferParams {
@@ -215,38 +157,264 @@ interface Erc20TransferParams {
   recipientAddress: `0x${string}`;
   amount: number;
 }
-interface BatchTransferItem {
-  to: `0x${string}`;
-  amount: string;
-  token: string;   // e.g. 'USDC'
-  guid: string;    // unique id for deduplication
+
+interface BatchTransferParams {
+  tokenAddress: `0x${string}`;
+  responses: BatchTransferResponse[];
+}
+
+interface BatchTransferResponse {
+  transaction_id: string; // GUID
+  operation_id: string;   // GUID
+  crypto_transfers: {
+    address: string;
+    precise_amount: string; // amount in the token's smallest unit
+  }[];
+}
+
+// Used by makeTransferWithoutDelayPolicy (FX swap payment leg)
+interface SwapTransferParams {
+  tokenAddress: `0x${string}`;     // wrapped synthetic token to unwrap and send (e.g. WUSD)
+  recipientAddress: `0x${string}`; // FX deposit address returned by swap.estimate
+  amount: string;                  // amount of the source token (decimal string)
 }
 ```
 
-## sdk.crypto.yield
+## `sdk.crypto.yield` — Yield Service
 
 | Method | Description |
-|--------|-------------|
-| `fetchYieldData()` | APY, current, weekly, lifetime yield |
-| `getYieldDataForGraphic()` | Time series for charts |
-| `getWeeklyYield()` | Yield this week |
-| `withdraw()` | Withdraw accumulated yield to wallet balance |
-| `switchYieldToken(token)` | Change yield token (e.g. `'WEUR'`) |
+| --- | --- |
+| `fetchYieldData()` | Get yield data (APY, pending, weekly, lifetime) |
+| `getYieldDataForGraphic()` | Get data for graph visualization |
+| `getWeeklyYield()` | Get weekly yield |
+| `withdraw()` | Withdraw accumulated yield |
+| `switchYieldToken(token)` | Switch yield token (`TokenInfo`, e.g. `sdk.crypto.getToken('WEUR')`) |
+
+**Yield Data Structure:**
 
 ```typescript
-interface YieldData {
-  tokenSymbol: string;
-  apy: string;
-  currentYield: string;
-  weeklyYield: string;
-  lifetimeYield: string;
+interface IYieldData {
+  apy: number;                 // annual rate in percent
+  currentPendingYield: string; // accumulated yield pending withdrawal
+  weeklyYield: string;         // weekly yield
+  lifeTimeYield: string;       // claimed + pending
 }
 ```
 
-## sdk.crypto.smartDepositAddress
+## `sdk.crypto.smartDepositAddress` — Smart Deposit Addresses
 
 | Method | Description |
-|--------|-------------|
-| `initializeSmartDepositAddresses(forceRefresh?)` | Create or fetch all deposit addresses |
-| `getAddresses()` | Cached addresses, no API call |
-| `clearAddresses()` | Clear local cache |
+| --- | --- |
+| `initializeSmartDepositAddresses(forceRefresh?)` | Create/get all deposit addresses |
+| `getAddresses()` | Get cached addresses |
+| `getDestinationChain()` | Rhino.fi chain code funds are bridged to |
+| `clearAddresses()` | Clear address cache |
+
+**Destination chain** follows the SDK `chainId`: `8453` / `84532` → `BASE`, `5042` / `5042002` → `ARC`. Rhino.fi has no testnet chains, so testnet ids resolve to the mainnet code.
+
+The destination chain is itself requested as a deposit chain, so the EVM group also holds a same-chain address — `ARC` → `ARC` when the SDK runs on Arc, `BASE` → `BASE` on Base.
+
+Deposit chains the destination rejects are skipped with a warning and the remaining chains in the group are still created: no bridgeable route (Rhino.fi `DepositAddressNoBridgableTokens`, e.g. USDT-only Kaia and TRON towards Arc) and chains Rhino.fi has not enabled for deposit addresses (`DepositAddressChainsNotSupported`).
+
+**Supported deposit networks:**
+
+* EVM: the destination chain (Base or Arc), Base, Arbitrum, BNB Chain, Ethereum, Kaia, Polygon, Optimism
+* TRON
+* Solana
+* Stellar
+
+## `sdk.api.withdrawal` — Withdrawal API
+
+| Method | Description |
+| --- | --- |
+| `getWithdrawalRequests()` | Get list of withdrawal requests |
+
+## `sdk.api.baas` — BaaS Module
+
+Banking-as-a-Service module with the following sub-services:
+
+## `sdk.api.baas.user` — User Service
+
+| Method | Description |
+| --- | --- |
+| `getUser()` | Get current user |
+| `getUserV2()` | Get current user (v2) |
+| `createUser(request)` | Create a new user |
+| `createRetailUser(request)` | Create a retail user |
+| `validateRetailUser()` | Validate retail user |
+| `authorizeUser(params)` | Authorize user |
+| `updatePhoneNumber(request)` | Update phone number |
+| `confirmPhoneNumber(request)` | Confirm phone number via OTP |
+| `uploadDocument(formData)` | Upload verification document |
+| `updateFreshdeskId(request)` | Update Freshdesk ID |
+| `getSharingToken(request)` | Get sharing token |
+| `setSharingToken(request)` | Set sharing token |
+| `getVerificationToken()` | Get verification token |
+| `getVerificationLink()` | Get verification link |
+
+## `sdk.api.baas.activity` — Activity Service
+
+| Method | Description |
+| --- | --- |
+| `getFeed(request?)` | Get activity feed |
+| `getById(request)` | Get activity by ID |
+| `getFullStatement(request)` | Get full statement |
+| `getRequestedErcWithdrawals()` | Get requested ERC withdrawals |
+
+## `sdk.api.baas.bank` — Bank Service
+
+| Method | Description |
+| --- | --- |
+| `getAccounts(request?)` | Get bank accounts |
+| `activateAccount(request)` | Activate bank account |
+| `estimateTransfer(request)` | Estimate bank transfer |
+| `executeTransfer(request)` | Execute bank transfer |
+| `estimateCorridorTransferV2(corridor, request)` | Estimate corridor transfer (v2) |
+| `executeCorridorTransferV2(corridor, request)` | Execute corridor transfer (v2) |
+
+## `sdk.api.baas.swap` — Swap Service (FX)
+
+Circle FX stablecoin swaps. Three-step flow: `estimate` (issues a deposit address) → on-chain payment to that address (`crypto.transfer.makeTransferWithoutDelayPolicy`) → `execute`.
+
+| Method | Description |
+| --- | --- |
+| `estimate(request)` | Create a swap estimation and deposit address. Send exactly one of `source_asset_amount` / `destination_asset_amount`. |
+| `execute(request)` | Execute the swap after the source tokens were sent to the deposit address. |
+
+```typescript
+type SwapEstimateRequest = {
+  source_asset_address: string;      // token to swap from (e.g. USDC)
+  destination_asset_address: string; // token to receive (e.g. EURC)
+  correlation_id?: string;
+} & (
+  | { source_asset_amount: string; destination_asset_amount?: never }
+  | { destination_asset_amount: string; source_asset_amount?: never }
+);
+
+interface SwapEstimateResponse {
+  estimation_id: string;
+  destination_address: string;       // send source tokens here (preferred)
+  deposit_address: string;           // @deprecated — mirrors destination_address
+  source_asset_address: string;
+  source_asset_amount: string;
+  destination_asset_address: string;
+  destination_asset_amount: string;
+  trade_rate: string;
+  expiration_time: string;           // RFC3339, estimation expiry
+}
+
+interface SwapExecuteRequest {
+  estimation_id: string;
+  payment_transaction_hash: string;  // hash of the on-chain payment
+}
+
+interface SwapExecuteResponse {
+  trade_id: string;
+}
+```
+
+## `sdk.api.baas.cards` — Cards Service
+
+| Method | Description |
+| --- | --- |
+| `getCards(request?)` | Get user cards |
+| `getCard(cardId)` | Get card details |
+| `getCardTransactions(request?)` | Get card transactions |
+| `issuePlasticCard(request)` | Issue a plastic card |
+| `issueVirtualCard(request)` | Issue a virtual card |
+| `activateCard(cardId, request)` | Activate card |
+| `blockCard(cardId)` | Block card |
+| `unblockCard(cardId)` | Unblock card |
+| `closeCard(cardId)` | Close card |
+| `getCardDetails(cardId, request)` | Get card PAN and expiry |
+| `getCardCvv(cardId, request)` | Get card CVV |
+| `getCardPin(cardId, request)` | Get card PIN |
+| `changeCardLimit(cardId, request)` | Change card limit |
+| `changeCardName(cardId, request)` | Change card name |
+| `estimateCardTransfer(request)` | Estimate card transfer |
+| `executeCardTransfer(request)` | Execute card transfer |
+| `estimateCardWithdrawal(cardId, request)` | Estimate card withdrawal |
+| `executeCardWithdrawal(cardId, request)` | Execute card withdrawal |
+| `getActive3dsRequests()` | Get active 3DS requests |
+| `approve3dsRequest(transactionId)` | Approve 3DS request |
+| `decline3dsRequest(transactionId)` | Decline 3DS request |
+| `getDeliveryCountries()` | Get card delivery countries |
+| `getDeliveryMethods(country)` | Get card delivery methods |
+| `getOrderFees(type, country)` | Get card order fees |
+| `createOrderFeesInvoice(type, country, request)` | Create order fees invoice |
+
+Sensitive card data (PAN, CVV, PIN) requires an action token obtained via SMS OTP:
+
+```typescript
+// 1. Request SMS OTP
+const session = await sdk.api.baas.confirmation.requestSms({
+  action_type: 'GetCardDetails',
+});
+
+// 2. Verify OTP → receive action token (UAT code is '000000')
+const tokenRes = await sdk.api.baas.confirmation.verifySms({
+  session_id: session.session_id,
+  code: userInputCode,
+});
+const actionToken = tokenRes.token;
+
+// 3. Use action token to retrieve sensitive data
+const details = await sdk.api.baas.cards.getCardDetails(cardId, { action_token: actionToken });
+// → { card_number: '4111111111111111', expiry_date: '12/2028' }
+
+const cvv = await sdk.api.baas.cards.getCardCvv(cardId, { action_token: actionToken });
+// → { cvv: '123' }
+```
+
+## `sdk.api.baas.config` — Config Service
+
+| Method | Description |
+| --- | --- |
+| `getConfig()` | Get client app config |
+
+## `sdk.api.baas.confirmation` — Confirmation Service
+
+| Method | Description |
+| --- | --- |
+| `verifySignature(request)` | Verify signature for action confirmation |
+| `requestSms(request)` | Request SMS confirmation code |
+| `verifySms(request)` | Verify SMS confirmation code |
+
+## `sdk.api.baas.recipients` — Recipients Service
+
+| Method | Description |
+| --- | --- |
+| `getRecipients(request?)` | Get all recipients |
+| `getRecipientsByCatalog(request)` | Get recipients by catalog |
+| `getRecipientsByCurrency(request)` | Get recipients by currency |
+| `getRecipientsByName(request)` | Get recipients by name |
+| `getRecipientsByType(request)` | Get recipients by type |
+| `getRecipientById(recipientId)` | Get recipient by ID |
+| `createRecipient(request)` | Create recipient |
+| `createRecipientV2(request)` | Create recipient (v2) |
+| `updateRecipient(recipientId, request)` | Update recipient |
+| `deleteRecipient(recipientId)` | Delete recipient |
+| `createRecipientPaymentDetails(recipientId, request)` | Create payment details |
+| `updateRecipientPaymentDetails(recipientId, paymentDetailsId, request)` | Update payment details |
+| `deleteRecipientPaymentDetails(recipientId, paymentDetailsId)` | Delete payment details |
+| `incrementRecipientUsage(recipientId)` | Increment recipient usage counter |
+
+## `sdk.api.baas.rates` — Rates Service
+
+| Method | Description |
+| --- | --- |
+| `getRates(request)` | Get exchange rates |
+
+## `sdk.api.baas.token` — Token Service
+
+| Method | Description |
+| --- | --- |
+| `getToken(request)` | Get OAuth2 token |
+
+## `sdk.api.baas.wallet` — Wallet Service
+
+| Method | Description |
+| --- | --- |
+| `getWallet(request?)` | Get wallet by ID or default |
+| `getWallets()` | Get all wallets |
+| `createGlobalWallet(request)` | Create global wallet |

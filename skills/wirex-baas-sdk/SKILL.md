@@ -1,6 +1,6 @@
 ---
 name: wirex-baas-sdk
-description: "Wirex BaaS TypeScript/JavaScript SDK (@wirexapp/wpay-baas-sdk) — official typed npm package wrapping OAuth2 token flow, BaaS REST services, and ZeroDev Kernel account-abstraction wallet operations. Covers installation (Node >= 18, viem peer dependency), createSDK options (env, companyId, chainId, getMainWalletClient, rhinoApiKey, logging), the MainWalletClient EIP-1193 contract, three auth paths (company OAuth2, Privy, JWT), the 7-step user registration flow, sdk.api.baas.* services, sdk.crypto.* modules (ERC-20 two-phase transfers, yield, smart deposit addresses), and typed error classes. Use when writing Node/TypeScript code against Wirex BaaS instead of raw HTTP."
+description: "Wirex BaaS TypeScript/JavaScript SDK (@wirexapp/wpay-baas-sdk) — official typed npm package wrapping OAuth2 token flow, BaaS REST services, and ZeroDev Kernel account-abstraction wallet operations. Covers installation (Node >= 18, viem peer dependency), createSDK options (env, companyId, chainId, getMainWalletClient, rhinoApiKey, logging), the MainWalletClient EIP-1193 contract, three auth paths (company OAuth2, Privy, JWT), the 7-step user registration flow (incl. single-signature allInOneStepOnboarding), sdk.api.baas.* services (incl. Circle FX swap estimate/execute), sdk.crypto.* modules (token transfers with or without the execution delay, batch transfers, yield, smart deposit addresses), and typed error classes. Use when writing Node/TypeScript code against Wirex BaaS instead of raw HTTP."
 license: Apache-2.0
 compatibility: "Requires network access. Compatible with Claude Code, Codex, and all Agent Skills spec tools."
 metadata:
@@ -23,29 +23,28 @@ Use the SDK when you write Node.js / TypeScript code. For raw HTTP integration s
 | Requirement | Notes |
 |-------------|-------|
 | Node.js >= 18 | Required runtime |
-| `viem ^2.0.0` | Peer dependency, install separately |
+| `viem ^2.49.3` | Peer dependency, install separately |
 | `CLIENT_ID` / `CLIENT_SECRET` | OAuth2 credentials from Wirex partner onboarding |
 | `COMPANY_ID` | Company identifier in hex format |
 
 ## Install
 
 ```
-npm install @wirexapp/wpay-baas-sdk
-npm install viem
+npm install @wirexapp/wpay-baas-sdk viem
 ```
 
-## Initialisation
+## Initialization
 
 ```typescript
-import { createSDK, type WirexPaySDK } from '@wirexapp/wpay-baas-sdk';
+import { createSDK, type SDKEnvironment } from '@wirexapp/wpay-baas-sdk';
 
-const sdk: WirexPaySDK = await createSDK({
-  env: 'dev',                         // 'dev' = sandbox | 'prod' = production
+const sdk = await createSDK({
+  env: 'dev',                         // 'dev' | 'prod'
   companyId: process.env.COMPANY_ID,  // hex company ID
-  chainId: process.env.CHAIN_ID,      // optional
+  chainId: 8453,                      // optional, defaults to remote config defaultChain
   getMainWalletClient: () => mainWalletClient,
-  rhinoApiKey: process.env.RHINO_API_KEY, // optional: Smart Deposit Addresses
-  enableLogging: false,
+  rhinoApiKey: process.env.RHINO_API_KEY, // optional: Smart Deposit Addresses only
+  enableLogging: true,                // optional, default false
   logger: customLogger,               // optional, needs enableLogging: true
 });
 ```
@@ -54,24 +53,17 @@ const sdk: WirexPaySDK = await createSDK({
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `env` | `'dev' \| 'prod'` | Yes | `dev` = `api-baas.wirexapp.tech` + Base Sepolia (84532); `prod` = `api-baas.wirexapp.com` + Base Mainnet (8453) |
+| `env` | `'dev' \| 'prod'` | Yes | Environment |
 | `companyId` | `string` | Yes | Company identifier in hex |
 | `companyName` | `string` | No | Sent as `X-Company-Name` on the remote-config fetch; selects that company's chain / contracts / default company |
 | `configUrl` | `string` | No | Explicit remote-config URL, overrides `env` |
 | `chainId` | `number` | No | `8453` Base, `84532` Base Sepolia, `5042` Arc, `5042002` Arc Testnet. Defaults to remote config `defaultChain` |
 | `getMainWalletClient` | `() => MainWalletClient` | Yes | Factory returning the user's embedded wallet client |
-| `rhinoApiKey` | `string` | No | Only for `sdk.crypto.smartDepositAddress`; if omitted that service throws `ConfigurationError` |
 | `enableLogging` | `boolean` | No | Default `false` |
-| `logger` | `Logger` | No | Custom logger |
+| `logger` | `Logger` | No | Custom logger (requires `enableLogging: true`) |
+| `rhinoApiKey` | `string` | No | Rhino.fi API key, required only for `sdk.crypto.smartDepositAddress` |
 
-> Note: docs differ. The on-chain registration page shows `env: 'production'` / `'sandbox'` in a `createSDK` example; the SDK page and the other pages use `'dev'` / `'prod'`. Use the SDK page values (`'dev'` / `'prod'`).
-
-### Environments
-
-| `env` | API host | Chain |
-|-------|----------|-------|
-| `dev` | `api-baas.wirexapp.tech` | Base Sepolia (84532) |
-| `prod` | `api-baas.wirexapp.com` | Base Mainnet (8453) |
+> Note: docs differ. The on-chain registration page shows `env: 'production'` / `'sandbox'` in a `createSDK` example; the SDK page uses `'dev'` / `'prod'`. Use the SDK page values.
 
 ## MainWalletClient contract
 
@@ -88,8 +80,8 @@ const tokenRes = await sdk.api.baas.token.getToken({
   client_secret: process.env.CLIENT_SECRET,
   audience: 'https://api-business.wirexpaychain.tech', // same for dev and prod
 });
-// -> { access_token, token_type: 'Bearer', expires_at }
 
+// prime SDK auth state with the company token + user EOA wallet
 sdk.auth.setAuthState(
   { access_token: tokenRes.access_token, expires_at: tokenRes.expires_at },
   userEoaWallet,
@@ -115,7 +107,7 @@ const userResponse = await sdk.auth.registerUser({ privy: { accessToken, identit
 
 ```typescript
 await sdk.auth.login({ authorizationToken: 'your-jwt-token', userWallet: userEoaWallet });
-await sdk.auth.registerUser({ authorizationToken: 'your-jwt-token', country: 'FR' });
+await sdk.auth.registerUser({ authorizationToken: 'your-jwt-token', userWallet: userEoaWallet, country: 'FR', initialData });
 ```
 
 ### Token management
@@ -126,11 +118,12 @@ await sdk.auth.registerUser({ authorizationToken: 'your-jwt-token', country: 'FR
 
 1. `await sdk.crypto.wallet.getSmartWalletAddress()`
 2. `sdk.crypto.accountAbstraction.isPolicyInstalled()` and `isExecutorInstalled()`
-3. If either is false: `sdk.crypto.accountAbstraction.signInPolicyAndExecutor()` (one UserOperation; result `receipt.transactionHash`). Separately: `signInPolicy()` (ExecutionDelayPolicy only), `signInExecutor()` (FundsManagementExecutor only).
-4. Privy only (skip for JWT / OAuth2): link the smart wallet with SIWE through `useLinkWithSiwe` (`generateSiweMessage`, `linkWithSiwe` with `walletClientType: 'smart_wallet'`, `connectorType: 'kernel'`), signing with `sdk.crypto.wallet.getSmartWalletClient()`.
-5. `if (!(await sdk.crypto.accountContract.isWalletInAccounts())) await sdk.crypto.accountContract.registerInAccounts();` For corporate: `registerInCorporateAccounts()`.
-6. `sdk.auth.registerUser(...)` (Privy or JWT form above; the user id is `user.id`). Company: `sdk.auth.registerCompany({ authorizationToken, companyAddress, companyName, registrationCountry, registrationNumber })`. Low-level equivalent: `createUser({ email, country, wallet_address })` -> `POST /api/v1/user`.
-7. `sdk.auth.login(...)` -> `POST /api/v1/user/authorize`, PSI token stored internally.
+3. If either is false: `sdk.crypto.accountAbstraction.signInPolicyAndExecutor()` (result `receipt.transactionHash`). Separately: `signInPolicy()`, `signInExecutor()`.
+   **Single-signature alternative (steps 3 + 5):** if **neither** is installed, `sdk.crypto.onboarding.allInOneStepOnboarding()` batches executor install, root-validator switch and Accounts registration into one UserOperation (the user signs once instead of three times). Otherwise use the per-step calls.
+4. Privy only: link the smart wallet with SIWE through `useLinkWithSiwe` (`generateSiweMessage`, `linkWithSiwe` with `walletClientType: 'smart_wallet'`, `connectorType: 'kernel'`), signing with `sdk.crypto.wallet.getSmartWalletClient()`.
+5. `await sdk.crypto.accountContract.registerInAccounts()`; check with `isWalletInAccounts()`. Corporate: `registerInCorporateAccounts()`.
+6. `sdk.auth.registerUser(...)`. Privy form posts to `POST /api/v1/user/retail`; JWT form posts to `POST /api/v2/user` with `userWallet` (the user's EOA, sent as `wallet_address`), `country` (required by the type, not sent on this path) and `initialData` (`profile` + `residence_address`; required for companies on the Full verification model). The API sees the wallet a few seconds after step 5 (indexer delay): until then it returns `400 ErrorNotFound` -- wait and retry.
+7. `sdk.auth.login(...)`; with JWT pass `userWallet` (sent as `X-User-Wallet` on every later call).
 
 ## Modules at a glance
 
@@ -140,11 +133,12 @@ Full method tables are in [the reference](references/REFERENCE.md).
 |-----------|---------|
 | `sdk.auth` | login / register / token state |
 | `sdk.api.baas.token` | `getToken(request)` OAuth2 exchange |
-| `sdk.api.baas.user` | `getUser`, `getUserV2` (capabilities), `createUser`, `authorizeUser`, phone, KYC documents and tokens |
+| `sdk.api.baas.user` | `getUser`, `getUserV2`, `createUser`, `authorizeUser`, phone, KYC documents and tokens |
 | `sdk.api.baas.wallet` | `getWallet`, `getWallets`, `createGlobalWallet` |
 | `sdk.api.baas.cards` | issue, list, lifecycle, details/CVV/PIN, limits, top-up and withdrawal, 3DS, delivery, order fees |
 | `sdk.api.baas.confirmation` | `requestSms`, `verifySms`, `verifySignature` (action tokens) |
-| `sdk.api.baas.bank` | accounts, bank and SEPA/corridor transfers |
+| `sdk.api.baas.bank` | accounts, bank and corridor transfers |
+| `sdk.api.baas.swap` | Circle FX stablecoin swap: `estimate`, `execute` |
 | `sdk.api.baas.recipients` | recipient CRUD and payment details |
 | `sdk.api.baas.activity` | `getFeed`, `getById`, `getFullStatement`, `getRequestedErcWithdrawals` |
 | `sdk.api.baas.rates` / `config` | `getRates(request)` / `getConfig()` |
@@ -152,20 +146,12 @@ Full method tables are in [the reference](references/REFERENCE.md).
 | `sdk.crypto.wallet` | smart wallet address / clients, UserOperations |
 | `sdk.crypto.accountAbstraction` | policy and executor install |
 | `sdk.crypto.accountContract` | Accounts contract registration |
-| `sdk.crypto.transfer` | ERC-20 two-phase transfers, batch |
+| `sdk.crypto.onboarding` | `allInOneStepOnboarding()` |
+| `sdk.crypto.transfer` | token transfers (with / without delay policy), batch |
 | `sdk.crypto.yield` | yield data, withdraw, switch token |
 | `sdk.crypto.smartDepositAddress` | multi-chain deposit addresses (needs `rhinoApiKey`) |
 
 ## Common flows
-
-### Check card eligibility, issue a virtual card
-
-```typescript
-const user = await sdk.api.baas.user.getUserV2();
-const ok = user.capabilities.find(c => c.type === 'VisaVirtualCard')?.status === 'Active';
-const card = await sdk.api.baas.cards.issueVirtualCard({ card_name: 'My Card' });
-await sdk.api.baas.cards.blockCard(card.id);   // unblockCard, closeCard (irreversible)
-```
 
 ### Sensitive card data (PAN / CVV / PIN) via SMS OTP action token
 
@@ -179,25 +165,51 @@ const cvv = await sdk.api.baas.cards.getCardCvv(cardId, { action_token: tokenRes
 
 In UAT the OTP code is `000000`. For browser-side display without handling PAN yourself use the PCI SDK instead.
 
-### ERC-20 withdrawal (two-phase, ExecutionDelayPolicy)
+### Token transfer out of the wallet (ExecutionDelayPolicy)
+
+`tokenAddress` must be a **synthetic** token (e.g. WUSD): it is unwrapped and its base token is sent.
 
 ```typescript
-const result = await sdk.crypto.transfer.makeFullErc20Transfer({
+// single call: request -> wait out the delay on-chain -> final execution; no backend polling
+const finalTxHash = await sdk.crypto.transfer.makeErc20TransferFull({
   tokenAddress: '0x...', recipientAddress: '0x...', amount: 100,
 });
+
+// backend-driven: firstPart -> poll withdrawal requests until valid_after -> final
+const result = await sdk.crypto.transfer.makeFullErc20Transfer({ tokenAddress: '0x...', recipientAddress: '0x...', amount: 100 });
 // result.firstPartTxHash, result.finalTxHash, result.success
 ```
 
-Manual control: `makeErc20TransferFirstPart(params)` -> `sdk.api.withdrawal.getWithdrawalRequests()` (find `status === 'Requested'`, use its `call_data`) -> `makeErc20TransferFinal(callData)` after `valid_after`. Minimum delay is about 3 seconds in sandbox, longer in production. Also `makeErc20TransferSynthetic(params)` (unified WUSD/WEUR) and `batchTransfer({ items: [{ to, amount, token, guid }] })` (`guid` = unique id for deduplication).
+Manual control: `makeErc20TransferFirstPart(params)` -> `sdk.api.withdrawal.getWithdrawalRequests()` (find yours, use its `call_data`) -> `makeErc20TransferFinal(callData)` after `valid_after`. Other methods: `makeErc20TransferSynthetic(params)` (send synthetic tokens directly, no unwrap, no delay policy), `makeTransferWithoutDelayPolicy(params)` (unwrap + send in one op, used for the FX swap payment leg), `batchTransfer({ tokenAddress, responses: [{ transaction_id, operation_id, crypto_transfers: [{ address, precise_amount }] }] })` (`precise_amount` in the token's smallest unit).
 
-### Activity feed
+### FX swap (estimate -> pay -> execute)
 
 ```typescript
-const feed = await sdk.api.baas.activity.getFeed({ page_number: 0, page_size: 20 });
-const statement = await sdk.api.baas.activity.getFullStatement({ start: 1700000000, end: 1700600000 }); // Unix seconds
+const estimate = await sdk.api.baas.swap.estimate({
+  source_asset_address: '0x...',      // e.g. USDC
+  destination_asset_address: '0x...', // e.g. EURC
+  source_asset_amount: '100',         // or destination_asset_amount, exactly one
+});
+const paymentTransactionHash = await sdk.crypto.transfer.makeTransferWithoutDelayPolicy({
+  tokenAddress: '0x...',              // wrapped synthetic of the source asset, e.g. WUSD
+  recipientAddress: estimate.destination_address, // deposit_address is a deprecated mirror
+  amount: estimate.source_asset_amount,
+});
+const { trade_id } = await sdk.api.baas.swap.execute({
+  estimation_id: estimate.estimation_id,
+  payment_transaction_hash: paymentTransactionHash,
+});
 ```
 
-Activity `type`: `CardTransaction`, `BankTransfer`, `Crypto`. `direction`: `Inbound`, `Outbound`.
+The estimate carries `trade_rate` and `expiration_time` (RFC3339); pay and execute before it expires.
+
+### Yield
+
+```typescript
+const y = await sdk.crypto.yield.fetchYieldData(); // { apy, currentPendingYield, weeklyYield, lifeTimeYield }
+await sdk.crypto.yield.withdraw();
+await sdk.crypto.yield.switchYieldToken(sdk.crypto.getToken('WEUR'));
+```
 
 ### Smart deposit addresses
 
@@ -206,7 +218,7 @@ const addresses = await sdk.crypto.smartDepositAddress.initializeSmartDepositAdd
 // each: depositChain, depositAddress, supportedTokens[]
 ```
 
-Networks: Base, Arbitrum, BNB Chain, Ethereum, Kaia, Optimism, Polygon, Solana, TRON. Without `rhinoApiKey` access throws `ConfigurationError: "rhinoApiKey is required to use smartDepositAddress."`.
+Funds are bridged to the SDK chain: `8453`/`84532` -> `BASE`, `5042`/`5042002` -> `ARC` (Rhino.fi has no testnets, so testnet IDs resolve to the mainnet code). Deposit networks: the destination chain itself, Base, Arbitrum, BNB Chain, Ethereum, Kaia, Polygon, Optimism, TRON, Solana, Stellar. Chains the destination rejects are skipped with a warning (e.g. USDT-only Kaia and TRON towards Arc). Requires `rhinoApiKey`.
 
 ## Error handling
 
@@ -215,28 +227,27 @@ All errors extend `SDKError`; use `instanceof`.
 | Class | Cause |
 |-------|-------|
 | `SDKError` | Base class |
-| `ConfigurationError` | Invalid or missing SDK configuration |
-| `NetworkError` | HTTP failure, exposes `statusCode` |
-| `ContractError` | Contract interaction failure (e.g. execution delay not expired, invalid calldata) |
-| `WalletError` | Wallet client unavailable or misconfigured |
-| `TransactionError` | UserOperation reverted or timed out |
-| `AuthenticationError` | Token missing, expired or invalid: re-login |
-| `ValidationError` | Input validation failure |
+| `ConfigurationError` | Invalid configuration |
+| `NetworkError` | Network / HTTP errors |
+| `ContractError` | Smart contract interaction errors |
+| `WalletError` | Wallet-related errors |
+| `TransactionError` | Transaction execution errors |
+| `AuthenticationError` | Authentication failures: re-login |
+| `ValidationError` | Input validation errors |
 
 ```typescript
+import { SDKError, AuthenticationError } from '@wirexapp/wpay-baas-sdk';
+
 try {
-  await sdk.crypto.transfer.makeFullErc20Transfer(params);
+  await sdk.auth.login({ authorizationToken: 'token' });
 } catch (error) {
   if (error instanceof AuthenticationError) { /* re-login */ }
-  else if (error instanceof NetworkError) { console.error('HTTP', error.statusCode); }
-  else if (error instanceof ContractError) { /* delay not expired or bad calldata */ }
-  else if (error instanceof TransactionError) { /* reverted on-chain */ }
 }
 ```
 
 ## Exported types
 
-`WirexPaySDK`, `SDKConfig`, `SDKEnvironment`, `MainWalletClient`, `Logger`, `PrivyAuth`, `LoginUserParams`, `LoginCompanyParams`, `RegisterUserParams`, `RegisterCompanyParams`, `AuthResponse`, `RegisterUserResponse`, `Hex`, `TransactionHash`, `TransferRequest`, `TransferResult`, `BatchTransferItem`, `BatchTransferResult`, `YieldData`, `YieldGraphicDataPoint`, `TokenInfo`, `ContractAddresses`, `AccountStatus`, `PolicyStatus` (all from `@wirexapp/wpay-baas-sdk`).
+`SDKConfig`, `SDKEnvironment`, `Logger`, `TokenInfo`, `ContractAddresses`, `Hex`, `TransactionHash`, `MainWalletClient`, `PrivyAuth`, `LoginUserParams`, `LoginCompanyParams`, `RegisterUserParams`, `RegisterCompanyParams`, `AuthResponse`, `RegisterUserResponse` (all from `@wirexapp/wpay-baas-sdk`).
 
 ## Documentation
 
