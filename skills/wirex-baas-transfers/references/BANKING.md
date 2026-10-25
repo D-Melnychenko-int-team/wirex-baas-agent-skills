@@ -72,15 +72,15 @@ Retrieves all bank accounts for the user, including SEPA details (IBAN and BIC).
 
 | Parameter   | Type    | Default | Description              |
 |------------|---------|---------|--------------------------|
-| page_number | integer | 0       | Page index (0-indexed)   |
-| page_size   | integer | 25      | Items per page           |
+| page_number | integer | 0       | Page number; `0` and `1` both return the first page, `2` the second |
+| page_size   | integer | 25      | Items per page, capped at 50; `0` = no limit |
 | sort        | string  | name    | `name` (ascending) or `usage` (descending usage count) |
 
 **Response (200 OK):**
 
 ```json
 {
-  "accounts": [
+  "data": [
     {
       "id": "{account_id}:{details_id}",
       "account_type": "Sepa",
@@ -96,7 +96,7 @@ Retrieves all bank accounts for the user, including SEPA details (IBAN and BIC).
 }
 ```
 
-The guides show the list under `accounts`, while the API reference schema names it `data`; handle both. `account_type` values: `Sepa`, `Swift`, `FasterPayment`, `Ach`, `Spei`. `details` may also carry `mandatory_reference` (if present it MUST be set as the incoming transfer comment so the funds are credited to the right account), `sort_code`, `clabe`. Extra query parameter: `sort` (`name` default, or `usage`).
+The list is under `data`, as in the API reference schema (the guides show `accounts`; live sandbox returned `data`, 2026-10-25). Paging behaviour above was observed live in sandbox: without paging parameters the whole list is returned. `account_type` values: `Sepa`, `Swift`, `FasterPayment`, `Ach`, `Spei`. `details` may also carry `mandatory_reference` (if present it MUST be set as the incoming transfer comment so the funds are credited to the right account), `sort_code`, `clabe`. Extra query parameter: `sort` (`name` default, or `usage`).
 
 The `id` field uses a composite `{account_id}:{details_id}` format. Use this composite ID as the `account_id` in transfer estimate and execute requests.
 

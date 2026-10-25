@@ -47,11 +47,11 @@ Retrieve a paginated list of all recipients.
 
 **Response (200 OK):**
 
-> The guides show `items` + `total_count` / `page_number` / `page_size`; the API reference schema (`RecipientsResponse`) names the list `data`. Handle both.
+> The list is under `data`, as in the API reference schema (`RecipientsResponse`); live sandbox returned `data` for `GET /api/v1/recipients` (2026-10-25). The guides show `items` + `total_count` / `page_number` / `page_size` instead.
 
 ```json
 {
-  "items": [
+  "data": [
     {
       "id": "uuid-recipient-1",
       "personal_info": {
@@ -162,7 +162,7 @@ GET /api/v1/recipients/filter/type?type=Card
 
 ```json
 {
-  "items": [
+  "data": [
     {
       "id": "uuid-recipient-2",
       "personal_info": {

@@ -121,7 +121,7 @@ ASSERTIONS = [
     ("wirex-baas-transfers", '"line1"', "correct address field name"),
     ("wirex-baas-transfers", '"zip_code"', "correct zip_code field name"),
     ("wirex-baas-transfers", "account_holder", "correct account holder field"),
-    ("wirex-baas-transfers", '"items"', "list response root key in JSON"),
+    ("wirex-baas-transfers", '"data"', "list response root key in JSON (live sandbox 2026-10-25)"),
     ("wirex-baas-transfers", '"personal_info"', "nested personal info object"),
     ("wirex-baas-transfers", '"is_business"', "required is_business field"),
     ("wirex-baas-transfers", '"currencies"', "required currencies field"),

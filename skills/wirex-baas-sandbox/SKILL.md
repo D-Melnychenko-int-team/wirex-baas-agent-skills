@@ -132,8 +132,8 @@ Reversals, multi-auth/multi-clearing, refunds with representment, chargeback and
 
 Card transaction simulations **never** raise a 3DS challenge. Raise one explicitly, then decide it through the Wirex BaaS API as in production:
 
-1. `POST /card/3ds/initiate` (Helper API) with `cardId` (UUID from card issuance) and optional `transactionCurrency` (ISO 4217 alphabetic, default `USD`). Returns `transactionId`, `amount`, `currency` (ISO 4217 **numeric**, e.g. `"840"`), `merchant`, `bin`.
-2. `GET /api/v1/cards/3ds/requests` (BaaS, user token): the challenge is listed at once with `transaction_id` = `transactionId`; here `currency` is alphabetic (`"USD"`) and `amount` a string -- match by ID, not by currency/amount.
+1. `POST /card/3ds/initiate` (Helper API) with `cardId` (UUID from card issuance) and optional `transactionCurrency` (ISO 4217 alphabetic, default `USD`). Live sandbox (2026-10-25) returns `{ "bin", "transactionId", "currency" }` with the alphabetic code (`"USD"`); the docs also list `amount` and `merchant` and a numeric `currency` (`"840"`), which were not returned.
+2. `GET /api/v1/cards/3ds/requests` (BaaS, user token): the challenge appears within seconds with `transaction_id` = `transactionId`, plus `merchant_name`, `amount` (string) and `card_last_4` -- read amount and merchant here, match by ID.
 3. `POST /api/v1/cards/3ds/requests/{transactionId}/approve` or `/decline` (empty body) -> `200 {}`; a second decision -> `400 ErrorNotFound`. An undecided challenge expires after 5 minutes.
 
 Errors: `400 {"error": "cardId is required"}`; `500 {"error": "3DS initiation failed: ..."}` when the ID is not a Wirex BaaS sandbox card. See [reference](references/REFERENCE.md#3ds-challenge-simulation).
