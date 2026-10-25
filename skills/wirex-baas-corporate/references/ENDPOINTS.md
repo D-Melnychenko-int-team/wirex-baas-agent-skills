@@ -83,12 +83,12 @@ Every Corporate API endpoint with method, path, purpose, required permission and
 | GET | `/api/v1/cards/{type}/fees/{country}` | `CardSu`, `CardCreate`, `CardView` | Order fee; `type` = `Plastic`, `Virtual`, `Metal` | `order_fee`, `estimated_payment_amounts[]` |
 | GET | `/api/v1/cards/delivery/countries` | same | Plastic delivery countries | array of ISO codes |
 | GET | `/api/v1/cards/delivery/methods/{country}` | same | Couriers and delivery fee | `provider`, `fee` |
-| POST | `/api/v1/cards/{type}/fees/{country}/payment` | `CardSu`, `CardCreate` | v1 fee invoice | body `token_address`, `delivery_provider`; response `recipient_address`, `payment_amount` |
+| POST | `/api/v1/cards/{type}/fees/{country}/payment` | `CardSu`, `CardCreate` | v1 fee invoice | body `token_address`, `delivery_provider` (non-Virtual); response `recipient_address`, `payment_amount` |
 | POST | `/api/v2/cards/{type}/fees/{country}/payment` | same | v2 fee invoice | adds `delivery_id` (integer, single-use) |
 | POST | `/api/v1/cards/virtual` | `CardSu`, `CardCreate` | Issue virtual card (v1 fee flow) | `card_name`, `name_on_card`, `employee_id`, `payment_transaction_hash`; response `id` |
-| POST | `/api/v1/cards/plastic` | same | Issue plastic card (v1) | adds `delivery_provider`, `delivery_address` (required) |
+| POST | `/api/v1/cards/plastic` | same | Issue plastic card (v1) | adds `delivery_address` (required) and `delivery_provider` (required when fees are enforced) |
 | POST | `/api/v2/cards/virtual` | same | Issue virtual card (v2 fee flow) | `delivery_id` instead of `payment_transaction_hash` |
-| POST | `/api/v2/cards/plastic` | same | Issue plastic card (v2) | adds `delivery_provider`, `delivery_address` |
+| POST | `/api/v2/cards/plastic` | same | Issue plastic card (v2) | adds `delivery_address` (required) and `delivery_provider` (required when fees are enforced) |
 | PUT | `/api/v1/cards/{cardId}/activate` | `CardSu`, `CardManage` | Activate a plastic card (`NotActivated`) | `card_number_last4`, `expiry_date` (`MM/YYYY`) |
 | PUT | `/api/v1/cards/{cardId}/block` | `CardSu`, `CardManage` | Block an `Active` card | — |
 | PUT | `/api/v1/cards/{cardId}/unblock` | `CardSu`, `CardManage` | Unblock a `Blocked` card | — |
@@ -122,8 +122,8 @@ Every Corporate API endpoint with method, path, purpose, required permission and
 |---|---|---|---|---|
 | GET | `/api/v1/bank/accounts` | `TransactionSu`, `TransactionCreate`, `AccountView` | Bank accounts and details | `id` is composite `<accountId>:<detailsId>`; `details.iban`/`bic`/`account_number`/`sort_code`/`routing_number`/`clabe`/`mandatory_reference` |
 | POST | `/api/v1/bank/accounts` | `TransactionSu`, `AccountSu`, `AccountCreate` | Activate account details | body `account_type`; response `details_id` |
-| POST | `/api/v1/bank/transfer/estimate` | `TransactionSu`, `TransactionCreate` | v1 estimate (no beneficiary) | `account_id` (composite), `amount`, `tokens[]`, `reference`; response `id`, `expires_at`, `estimated_amounts[]` |
-| POST | `/api/v2/bank/transfer/estimate` | same | v2 estimate; `recipient` and `recipient_account` required for ACH | as v1 plus beneficiary |
+| POST | `/api/v1/bank/transfer/estimate` | `TransactionSu`, `TransactionCreate` | v1 estimate (no beneficiary) | `account_id` (composite), `amount`, `tokens[]`; response `id`, `expires_at`, `estimated_amounts[]` |
+| POST | `/api/v2/bank/transfer/estimate` | same | v2 estimate; `recipient` and `recipient_account` required for ACH | as v1 plus `reference` and beneficiary |
 | POST | `/api/v1/bank/transfer` | same | Execute SEPA/ACH/Faster Payments transfer | `account_id`, `token_address`, `recipient`, `recipient_account`, one of `estimation_id` / `amount`, `reference`; response `id` |
 | POST | `/api/v3/bank/estimate/{corridor}` | same | Corridor estimate | `recipient_id`, `recipient_payment_details_id`, `destination_amount`, `destination_currency`, `account_id` (plain UUID, bank corridors), `source_tokens[]` |
 | POST | `/api/v3/bank/initiate/{corridor}` | same | Corridor initiate | `estimation_id`, `source_token_address`, `reference`; response `transfer_id`, `status`, `required_actions[]` |

@@ -78,7 +78,7 @@ Response: `{ "id": "64120850-73a1-4df5-a074-d463258c9deb" }` (the user id).
 - `initial_data.profile.email` (required, unique) and `initial_data.residence_address.country` (required, ISO 3166-1 alpha-2) are **nested under `initial_data`**. A flat body returns `200 OK` but top-level `email`/`country` are ignored, leaving the user without KYC data.
 - KYC is identical to the standard integration (see `wirex-baas-onboarding`).
 
-> Note: docs differ. The External Authorization page shows only `email` and `country` under `initial_data`; the API reference for `POST /api/v2/user` marks `initial_data.is_pep`, `profile` (`date_of_birth`, `email`, `first_name`, `last_name`, `nationality`, `phone_number`) and `residence_address` (`city`, `country`, `post_code`) as required, and says `initial_data` and `sharing_data` are mutually exclusive. Follow the API reference when the API rejects the short body.
+> Note: docs differ. The External Authorization page shows only `email` and `country` under `initial_data`; the API reference for `POST /api/v2/user` marks `initial_data.is_pep`, `profile` (`date_of_birth`, `email`, `first_name`, `last_name`, `nationality`, `phone_number`) and `residence_address` (`city`, `country`, `line1`, `post_code`) as required, and says `initial_data` and `sharing_data` are mutually exclusive. Follow the API reference when the API rejects the short body.
 
 ## What the partner must implement
 
@@ -165,7 +165,7 @@ Same identifying fields as authorize (`transaction_type`, `user_id`, `transactio
 
 `error_reason` optional: `InsufficientFunds` or `GeneralError`. Return `is_processed: false` with `GeneralError` when the operation is unknown.
 
-> Note: docs differ. The settle field table says `settlement_decision` 0 = Approve, 1 = Reject, but the code examples treat `settlement_decision === 1` as "finalize debit" and 0 as "release hold" (inverted). Follow the field table and verify against sandbox. The Python/Go examples also return an `external_transactions` array (`account_currency`, `account_id`, `amount`, `rate`, `transaction_identifier`) that is not in the response field table.
+> Note: docs differ. The settle field table says `settlement_decision` 0 = Approve, 1 = Reject, but the code examples treat `settlement_decision === 1` as "finalize debit" and 0 as "release hold" (inverted). Follow the field table and verify against sandbox. The Python/Go authorize examples (not the settle ones) also return an `external_transactions` array (`account_currency`, `account_id`, `amount`, `rate`, `transaction_identifier`) that is not in the authorize response field table.
 
 ### Decision rules
 
@@ -184,7 +184,7 @@ Same identifying fields as authorize (`transaction_type`, `user_id`, `transactio
 2. Mandatory: record the operation and answer `is_allowed: true`.
 3. Otherwise compare the user's ledger balance with `amount` in `currency`; if allowed, place a hold; answer with `decline_reason: "InsufficientFunds"` when not.
 4. On settle: look up the operation by `unique_operation_id`; finalize the debit or release the hold per `settlement_decision`; respond `is_processed`.
-5. Keep p95 well under 300 ms; test timeouts (> 500 ms = decline) and mandatory handling in sandbox.
+5. Keep responses under 300 ms (the docs' target response time); test timeouts (> 500 ms = decline) and mandatory handling in sandbox.
 
 Code examples (JavaScript, Python, Go) are in the Authorization API docs page.
 

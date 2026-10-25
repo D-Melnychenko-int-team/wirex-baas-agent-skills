@@ -116,7 +116,7 @@ For sensitive card actions the employee signs a message with their wallet:
 
 A corporation exists on-chain first, then in Wirex. Detail and contract addresses: [ONBOARDING.md](references/ONBOARDING.md), [guide](https://docs.wirexapp.com/docs/corporate-onboarding).
 
-1. **Deploy the corporate wallet on-chain.** The owner wallet creates the corporation through `CorporateValidator` with `ExecutionDelayCorporatePolicy` and `FundsManagement`, via `createCorporationForCorporateWallet`. The older `createCorporation` is obsolete. The code is TypeScript/ABI work done by the partner, described in ONBOARDING.md.
+1. **Deploy the corporate wallet on-chain.** Install `CorporateValidator` with `ExecutionDelayCorporatePolicy` and `FundsManagement` on the wallet, then any address calls `createCorporationForCorporateWallet` on `CorporateAccounts` (permissionless; the owner is the `creator` recorded in the `CorporateValidator` install data, not `msg.sender`). The older `createCorporation` is obsolete. The code is TypeScript/ABI work done by the partner, described in ONBOARDING.md.
 2. `GET /api/v1/config` for the ContractRegistry, then `POST /api/v1/token` for the partner token.
 3. `POST /api/v1/corporations/register` (partner token; `X-User-Wallet` and `X-User-Email` both required) links the on-chain corporation to Wirex.
 4. `POST /api/v1/corporations/login` returns the corporation token.
@@ -164,16 +164,15 @@ Note: docs differ. The Employees reference lists `phone` as optional on invite; 
 
 Detail: [CARDS.md](references/CARDS.md), [guide](https://docs.wirexapp.com/docs/corporate-cards).
 
-Cards are **virtual** or **plastic**; ceilings 30 virtual and 15 plastic cards per corporation (a closed card frees a slot). Issuance is paid by an order fee in a stablecoin from the corporation wallet. There is no `GET /api/v1/cards/{cardId}`: list and filter.
+Cards are **virtual** or **plastic**; ceilings 30 virtual and 15 plastic cards per corporation (a closed card frees a slot). Issuance may carry an order fee, only when fees are enforced for your company; otherwise `GET /api/v1/cards/{type}/fees/{country}` returns `400 You have no card order/delivery fees to pay` and the card is issued directly. There is no `GET /api/v1/cards/{cardId}`: list and filter.
 
-### Issue a card (v2 fee flow)
+### Issue a card (v2 fee flow, when fees are enforced)
 
 1. `GET /api/v1/cards/{type}/fees/{country}` (`type` = `Plastic` or `Virtual`) returns the fee. For plastic: `GET /api/v1/cards/delivery/countries` and `GET /api/v1/cards/delivery/methods/{country}`.
-2. `POST /api/v2/cards/{type}/fees/{country}/payment` (body `token_address`, plastic adds `delivery_id`) returns a fee invoice to pay on-chain.
-3. Pay the invoice from the corporation wallet.
-4. `POST /api/v2/cards/virtual` or `POST /api/v2/cards/plastic` with `card_name`, `name_on_card`, employee link and the payment reference (v2 passes `delivery_id`; plastic also `delivery_provider`, `delivery_address`).
-5. The v1 variants (`/api/v1/cards/{type}/fees/{country}/payment`, `/api/v1/cards/virtual`, `/api/v1/cards/plastic`) take `payment_transaction` instead of `delivery_id`.
-6. Observe `/v2/webhooks/cards` or poll `GET /api/v1/cards` (`CardSu` or `CardView`; admins may pass `employee_id`).
+2. `POST /api/v2/cards/{type}/fees/{country}/payment` (body `token_address`, plus `delivery_provider` for non-Virtual) returns a fee invoice with `delivery_id`. Wirex debits the fee at issuance; no on-chain payment.
+3. `POST /api/v2/cards/virtual` or `POST /api/v2/cards/plastic` with `card_name`, `name_on_card`, employee link and `delivery_id`; plastic also `delivery_provider`, `delivery_address`.
+4. v1 alternative (you pay the fee on-chain yourself): `/api/v1/cards/{type}/fees/{country}/payment` returns `recipient_address`; transfer the fee, then `/api/v1/cards/virtual` or `/api/v1/cards/plastic` take `payment_transaction_hash` instead of `delivery_id`. Do not mix v1 and v2 calls.
+5. Observe `/v2/webhooks/cards` or poll `GET /api/v1/cards` (`CardSu` or `CardView`; admins may pass `employee_id`).
 
 Plastic cards start `NotActivated`: `PUT /api/v1/cards/{cardId}/activate` with `card_number_last4` and `expiry_date` (`MM/YYYY`).
 
@@ -201,7 +200,7 @@ Note: docs differ. One guide says approve/decline need a `3dsChallenge` action t
 
 ## Transfers
 
-Detail: [TRANSFERS.md](references/TRANSFERS.md), [guide](https://docs.wirexapp.com/docs/corporate-transfers). Money-moving calls follow **estimate, then execute with the `estimation_id`**. The returned `id` equals the activity feed id; status is read from `GET /api/v1/activity/feed`.
+Detail: [TRANSFERS.md](references/TRANSFERS.md), [guide](https://docs.wirexapp.com/docs/corporate-bank-transfers). Money-moving calls follow **estimate, then execute with the `estimation_id`**. The returned `id` equals the activity feed id; status is read from `GET /api/v1/activity/feed`.
 
 | Goal | Path |
 |---|---|
@@ -211,7 +210,7 @@ Detail: [TRANSFERS.md](references/TRANSFERS.md), [guide](https://docs.wirexapp.c
 | Push to external card | `POST /api/v1/cards/transfer/estimate`, `POST /api/v1/cards/transfer` |
 | Token swap | `POST /api/v1/fx/estimate`, `POST /api/v1/fx` |
 
-Permissions: bank, corridor and bulk need `TransactionSu` or `TransactionCreate`; push-to-card and FX need `TransactionSu` (and the capability `Active`: `CardTransfer`, `StableExchange`).
+Permissions: bank, corridor and bulk need `TransactionSu` or `TransactionCreate`; push-to-card needs `CardSu`; FX needs `TransactionSu` (and the capability `Active`: `CardTransfer`, `StableExchange`).
 
 ### Bank accounts
 
@@ -233,7 +232,7 @@ Note: docs differ. The reference accepts `Sepa` as `account_type`; the Account A
 3. `POST /api/v3/bank/initiate/{corridor}` with `estimation_id`, `source_token_address`, `reference`.
 4. For CPN corridors the response contains a `FundTransfer` to confirm: `POST /api/v3/bank/confirm/{corridor}` with `transfer_id` and `actions[]`.
 
-The 16-row corridor table (currencies, rails, limits) is in TRANSFERS.md.
+The 16-row corridor table (currencies, rails, capabilities, providers) is in TRANSFERS.md.
 
 ### Bulk transfer
 
@@ -331,7 +330,7 @@ Not implemented for corporations: card top-up; XRPL accounts and withdrawals; `G
 - [Onboarding](https://docs.wirexapp.com/docs/corporate-onboarding)
 - [Employees](https://docs.wirexapp.com/docs/corporate-employees)
 - [Cards](https://docs.wirexapp.com/docs/corporate-cards)
-- [Transfers](https://docs.wirexapp.com/docs/corporate-transfers)
+- [Transfers](https://docs.wirexapp.com/docs/corporate-bank-transfers)
 - [Webhooks](https://docs.wirexapp.com/docs/corporate-webhooks)
 - [Statements](https://docs.wirexapp.com/docs/corporate-statements)
 - [Error Reference](https://docs.wirexapp.com/docs/corporate-error-reference)

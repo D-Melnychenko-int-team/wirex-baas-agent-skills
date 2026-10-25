@@ -66,6 +66,8 @@ Rail (SEPA, ACH, Faster Payments) is implied by the details type behind `account
 }
 ```
 
+`reference` in the estimate body exists only in v2; the v1 estimate takes `account_id`, `amount`, `tokens`.
+
 Response: `id` (the estimation id), `amount`, `currency`, `expires_at`, `estimated_amounts[]` (`amount`, `precise_amount`, `token_address`, `token_symbol`, `rate`, `fee_amount`, `fee_precise_amount`). `tokens` defaults to every token available to the corporation.
 
 2. Execute: `POST /api/v1/bank/transfer`. Body: `account_id`, `token_address`, `recipient` (`first_name` + `last_name` for a person, or `company_name`), `recipient_account`, `reference`, and one of `estimation_id` (the estimate's `id`; uses the quoted rate) or `amount` (executes at current market rate). Sending neither is `400 ErrorMissingField`. Response `{"id": "<activity_id>"}`, the activity feed item id.

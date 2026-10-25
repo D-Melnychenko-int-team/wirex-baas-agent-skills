@@ -57,19 +57,21 @@ Response: `id` (the `recipient_id`), `personal_info` (`first_name`, `last_name`,
 |---|---|---|
 | `Crypto` | `crypto` | `address`, `network` |
 | `Sepa` | `sepa` | `iban`, `bic` |
-| `Swift` | `swift` | `iban`, `bic`; optional `bank_name`, `bank_country`, `legal_address` |
+| `Swift` | `swift` | `iban`, `bic`, `bank_name`, `bank_country`, `legal_address` |
 | `FasterPayment` | `faster_payments` | `account_number`, `sort_code` |
-| `Ach` | `ach` | `routing_number`, `account_number`; optional `bank_name`, `legal_address` |
-| `Spei` | `spei` | `clabe`; optional `recipient_id_number`, `legal_address` |
+| `Ach` | `ach` | `routing_number`, `account_number`, `legal_address`; optional `bank_name` |
+| `Spei` | `spei` | `clabe`, `recipient_id_number`, `legal_address` |
 | `Card` | `card` | `card_id`, `card_pan_last` |
-| `Pix` | `pix` | `pix_key`, `pix_key_type`, `recipient_name`; optional `recipient_id_number`, `legal_address` |
-| `FpsHk` | `fps_hk` | `fps_id`, `fps_id_type`, `bank_code`, `recipient_name` |
+| `Pix` | `pix` | `pix_key`, `pix_key_type`, `recipient_name`, `recipient_id_number`, `legal_address` |
+| `FpsHk` | `fps_hk` | `fps_id`, `fps_id_type`, `bank_code`, `recipient_name`, `legal_address` |
 | `Imps` | `imps` | `account_number`, `ifsc_code`, `recipient_name`, `destination_country` |
 | `Instapay` | `instapay` | `account_number`, `bank_code`, `recipient_name`, `destination_country` |
 | `BiFast` | `bi_fast` | `account_number`, `bank_code`, `recipient_name`, `destination_country` |
 | `Nip` | `nip` | `account_number`, `bank_code`, `recipient_name`, `destination_country` |
 | `Ipp` | `ipp` | `iban`, `recipient_name`, `destination_country` |
 | `Pse` | `pse` | `account_number`, `account_type`, `bank_code`, `recipient_name`, `document_type`, `document_number` |
+
+> Note: docs differ. The recipients-create guide lists `bank_name`, `bank_country`, `legal_address` (Swift/Ach/FpsHk) and `recipient_id_number`, `legal_address` (Spei/Pix) as optional; the request schemas in the API reference mark them required, so send them. `legal_address` requires `line1`, `city`, `country`, `zip_code`.
 
 The `FasterPayment` object is `faster_payments` on the way in and `faster_payment` on the way out. `card.card_id` is the tokenized card identifier that push-to-card takes as `external_card_id`.
 

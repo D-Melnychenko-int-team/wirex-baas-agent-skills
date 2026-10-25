@@ -203,7 +203,7 @@ const { trade_id } = await sdk.api.baas.swap.execute({
 
 The estimate carries `trade_rate` and `expiration_time` (RFC3339); pay and execute before it expires.
 
-Under the hood `swap.estimate` calls `POST /api/v1/fx/estimate` and `swap.execute` calls `POST /api/v1/fx` (see the REST FX guide `retail-fx`). Observed live in sandbox: the user needs an active capability (unverified user -> `400` "Capability is not active"); minimum source amount 10 (`400` "Amount is below minimum allowed amount", `error_details` `min_amount: 10`); both amounts at once -> `400` "Only one of source_asset_amount or destination_asset_amount can be provided"; the response also carries `*_precise` amounts, `*_decimals` and `rate_decimals`, and an estimate lives about 120 s.
+Under the hood `swap.estimate` calls `POST /api/v1/fx/estimate` and `swap.execute` calls `POST /api/v1/fx` (SDK 0.1.12 source; the docs do not state this mapping, REST side: guide `retail-fx`). Observed live in sandbox: the user needs an active capability (unverified user -> `400` "Capability is not active"); minimum source amount 10 (`400` "Amount is below minimum allowed amount", `error_details` `min_amount: 10`); both amounts at once -> `400` "Only one of source_asset_amount or destination_asset_amount can be provided"; the response also carries `*_precise` amounts, `*_decimals` and `rate_decimals`, and an estimate lives about 120 s.
 
 ### Yield
 
