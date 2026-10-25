@@ -1,6 +1,6 @@
 ---
 name: wirex-baas-sandbox
-description: "Wirex BaaS sandbox testing — simulate real-world scenarios in the development environment. Helper API (ramc.wirexapp.tech) for minting test tokens, simulating SEPA deposits and transfers (complete/revert), ACH customer activation and transfers, and card transaction flows (auth + clearing, e-commerce, ATM, refunds, reversals, original credit, adjustments). Includes sandbox test credentials and token addresses. Interactive docs at ramc.wirexapp.tech/api-docs/."
+description: "Wirex BaaS sandbox testing — simulate real-world scenarios in the development environment. Helper API (ramc.wirexapp.tech) for minting test tokens, simulating SEPA deposits and transfers (complete/revert), ACH customer activation and transfers, and card transaction flows (auth + clearing, e-commerce, ATM, refunds, reversals, original credit, adjustments), and 3DS in-app confirmation challenges. Includes sandbox test credentials and token addresses. Interactive docs at ramc.wirexapp.tech/api-docs/."
 license: Apache-2.0
 compatibility: "Requires network access. Compatible with Claude Code, Codex, and all Agent Skills spec tools."
 metadata:
@@ -128,6 +128,18 @@ Reversals, multi-auth/multi-clearing, refunds with representment, chargeback and
 
 ---
 
+## 3DS Challenge Simulation
+
+Card transaction simulations **never** raise a 3DS challenge. Raise one explicitly, then decide it through the Wirex BaaS API as in production:
+
+1. `POST /card/3ds/initiate` (Helper API) with `cardId` (UUID from card issuance) and optional `transactionCurrency` (ISO 4217 alphabetic, default `USD`). Returns `transactionId`, `amount`, `currency` (ISO 4217 **numeric**, e.g. `"840"`), `merchant`, `bin`.
+2. `GET /api/v1/cards/3ds/requests` (BaaS, user token): the challenge is listed at once with `transaction_id` = `transactionId`; here `currency` is alphabetic (`"USD"`) and `amount` a string -- match by ID, not by currency/amount.
+3. `POST /api/v1/cards/3ds/requests/{transactionId}/approve` or `/decline` (empty body) -> `200 {}`; a second decision -> `400 ErrorNotFound`. An undecided challenge expires after 5 minutes.
+
+Errors: `400 {"error": "cardId is required"}`; `500 {"error": "3DS initiation failed: ..."}` when the ID is not a Wirex BaaS sandbox card. See [reference](references/REFERENCE.md#3ds-challenge-simulation).
+
+---
+
 ## Webhook Trigger Summary
 
 | Simulation | Webhooks Triggered |
@@ -137,6 +149,7 @@ Reversals, multi-auth/multi-clearing, refunds with representment, chargeback and
 | SEPA revert | `/v2/webhooks/activities` (Sepa, Inbound reversal) |
 | ACH deposit | `/v2/webhooks/activities` (AchPush, Inbound) |
 | Card flows | `/v2/webhooks/activities` (CardTransaction) |
+| 3DS initiate | The docs do not state whether `/v2/webhooks/3ds` fires; poll `GET /api/v1/cards/3ds/requests` |
 
 The docs do not list webhooks for token minting or ACH complete/revert.
 
@@ -149,7 +162,7 @@ The docs do not list webhooks for token minting or ACH complete/revert.
 3. **Mint tokens** via the Helper API to fund the user's wallet.
 4. **Simulate deposits** (SEPA or ACH) to test bank transfer flows.
 5. **Issue a card** via the main BaaS API (e.g. `POST /api/v2/cards/virtual`).
-6. **Simulate card transactions** via the Helper API.
+6. **Simulate card transactions** via the Helper API; raise a 3DS challenge with `POST /card/3ds/initiate` if you test approve/decline.
 7. **Monitor webhooks** on your registered endpoints.
 8. **Query activity history** via `GET /api/v2/activity/feed` to verify.
 
@@ -157,4 +170,4 @@ The docs do not list webhooks for token minting or ACH complete/revert.
 
 ## References
 
-- [Sandbox Helper API Reference](references/REFERENCE.md) -- Endpoint specifications with request/response fields, the full list of card flow endpoints, error codes, and JavaScript examples
+- [Sandbox Helper API Reference](references/REFERENCE.md) -- Endpoint specifications with request/response fields, the full list of card flow endpoints, 3DS challenge simulation, error codes, and JavaScript examples

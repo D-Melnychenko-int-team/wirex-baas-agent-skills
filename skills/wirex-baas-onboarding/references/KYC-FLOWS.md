@@ -162,7 +162,18 @@ For partners whose users are already verified via SumSub. The partner shares the
 
 **Documents:** selfie (liveness check, required); Proof of Identity (required; ask your Wirex account manager for accepted document types per country; must have more than 1 month of validity left); Proof of Address (required; issued within the last 6 months). User age: 18-90.
 
-**Questionnaire:** the applicant must have a completed SumSub questionnaire (planned use of the app, employment status and industry, yearly income, estimated monthly card spend, PEP declaration). Get the definition from your Wirex account manager, add it to your SumSub verification level, and keep section IDs, item IDs and option values unchanged -- Wirex reads answers by value.
+**Questionnaire:** the applicant must have a completed SumSub questionnaire, `onboarding_survey_baas_v1`. Get it from your Wirex account manager, add it to your SumSub verification level, and keep section IDs, item IDs and option values unchanged -- Wirex reads answers by value. Instead of pre-filling it on the applicant, you can submit it via the Wirex API after registration -- see [Submitting the Questionnaire via API](#submitting-the-questionnaire-via-api).
+
+| Section | Item | Type | Required | Options |
+|---------|------|------|----------|---------|
+| `productsServicesRequired` | `productsServicesRequired` | multiSelect | Yes | `Card purchases including restaurants, shopping, leisure`, `Send money to friends and family`, `Flights, hotels, car hire etc.`, `Mortgage/rent payments etc. and ATM withdrawals`, `Traditionally investing with banks etc.`, `Trading or investing in Crypto, including staking, mining & NFTs` |
+| `employmentStatus` | `employmentStatus` | select | Yes | `Employed / Self Employed`, `Retired`, `Student / Not employed` |
+| `occupation` | `occupation` | selectDropdown | Only when `employmentStatus` = `Employed / Self Employed` | `Agriculture / Natural Resources / Mining`, `Construction / Engineering`, `Education / Academic`, `Financial Services / Banking`, `Government / Public Sector / Defence`, `Healthcare / Medical / Pharmaceuticals`, `Hospitality / Travel / Tourism`, `Legal / Professional Services (Law, Accountancy, Consulting)`, `Manufacturing / Industrial`, `Media / Entertainment / Arts`, `Real Estate / Property Development`, `Retail / E-Commerce`, `Technology / IT Services`, `Transportation / Logistics / Shipping`, `Other` |
+| `actualIncomeValue` | `actualIncomeValue` | select | Yes | `Up to 25,000`, `25,000 – 75,000`, `75,000 – 150,000`, `Over 150,000` |
+| `sourceOfFunds` | `sourceOfFunds` | select | Yes | `Employment / Salary`, `Business Income / Self-Employment`, `Savings / Existing Investments`, `Inheritance`, `Gift`, `Other` |
+| `annualTransactionVolume` | `annualTransactionVolume` | select | Yes | `Up to 25,000`, `25,000 – 75,000`, `75,000 – 150,000`, `Over 150,000` |
+| `pepDeclaration` | `personalPepConfirmation` | select | Yes | `I am a PEP`, `I am not a PEP` |
+| `pepDeclaration` | `personalPepExplanation` | textArea | Only when `personalPepConfirmation` = `I am a PEP` | free text |
 
 ### Step 1: Generate a Share Token
 
@@ -320,6 +331,63 @@ PUT /api/v2/user/kyc-data
 ```
 
 Updates profile (`first_name`, `last_name`, `date_of_birth`, `nationality`, `phone_number`), `residence_address` and `is_pep` already on file -- to fix mistyped data before verification completes, not to re-verify. At least one of `profile` or `residence_address` is required (sending only `is_pep` is refused); every field is individually optional. Response `{}`. **Not available under the Wirex Hosted model** (corrections go through the hosted flow).
+
+---
+
+## Submitting the Questionnaire via API
+
+Available in Flow 2 (SumSub Shared) and Flow 3 (KYC Sharing via API). Once the user is registered, submit the `onboarding_survey_baas_v1` answers (sections, items and option values from the [questionnaire table](#prerequisites)) directly to Wirex. In Flow 3 there is no SumSub applicant to pre-fill, so submit them once the user has completed verification.
+
+- If the user has already completed SDD, the submission moves them onto the verification level that hosts the questionnaire, and a webhook with the updated `verification_status` follows.
+- If SDD is not complete yet, the answers are recorded against the current level and `verification_status` does not change.
+- **Existing users** registered before this endpoint existed have no answers on file -- call it for each of them.
+
+```
+POST /api/v2/user/questionary
+Authorization: Bearer <user token>
+Content-Type: application/json
+```
+
+```json
+{
+  "questionary_id": "onboarding_survey_baas_v1",
+  "sections": [
+    { "section_id": "productsServicesRequired", "answers": [{ "item_id": "productsServicesRequired", "answers": ["Send money to friends and family"] }] },
+    { "section_id": "employmentStatus", "answers": [{ "item_id": "employmentStatus", "answers": ["Employed / Self Employed"] }] },
+    { "section_id": "occupation", "answers": [{ "item_id": "occupation", "answers": ["Technology / IT Services"] }] },
+    { "section_id": "actualIncomeValue", "answers": [{ "item_id": "actualIncomeValue", "answers": ["25,000 – 75,000"] }] },
+    { "section_id": "sourceOfFunds", "answers": [{ "item_id": "sourceOfFunds", "answers": ["Employment / Salary"] }] },
+    { "section_id": "annualTransactionVolume", "answers": [{ "item_id": "annualTransactionVolume", "answers": ["25,000 – 75,000"] }] },
+    { "section_id": "pepDeclaration", "answers": [{ "item_id": "personalPepConfirmation", "answers": ["I am not a PEP"] }] }
+  ]
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `questionary_id` | string | Yes | `onboarding_survey_baas_v1` |
+| `sections` | array | Yes | At least one section |
+| `sections[].section_id` | string | Yes | Section identifier |
+| `sections[].answers` | array | Yes | At least one answer |
+| `sections[].answers[].item_id` | string | Yes | Item identifier within the section |
+| `sections[].answers[].answers` | array of string | Yes | One value for `select`/`selectDropdown`, several for `multiSelect` |
+
+With `personalPepConfirmation` = `I am a PEP`, the `pepDeclaration` section must also carry `{ "item_id": "personalPepExplanation", "answers": ["<free text>"] }`.
+
+**Response:** `{}`
+
+Wirex validates every section against the definition, including conditional items; a submission missing a required answer is rejected as a whole (nothing is partially saved).
+
+| Error Reason | Description | Resolution |
+|--------------|-------------|------------|
+| `ErrorGeneral` | `questionary_id` missing | Supply the questionnaire identifier |
+| `ErrorGeneral` | Missing required questionary answer (`error_details` names `section_id` and `item_id`) | Supply the item |
+| `ErrorGeneral` | `SubmitQuestionary is only supported for Trust\|Full verification model` | Not available for this company's verification model |
+| `ErrorNotFound` | Account not found | Register the user first |
+| `ErrorGeneral` | Account has no SumSub ID | User has not started verification yet |
+| `ErrorGeneral` | No level configured for questionary | Contact your Wirex account manager |
+
+> Documented only in the guides (`retail-kyc-shared`, `retail-kyc-api`); the API reference has no page for this endpoint yet.
 
 ---
 

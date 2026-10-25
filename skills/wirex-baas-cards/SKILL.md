@@ -178,6 +178,8 @@ An OTP is sent to the phone number given at registration and entered in the 3DS 
 
 Approve/decline take **no body and no `action_token`**; success is `200 {}`. Unknown, already decided, expired, or foreign transactions all return the same `400 ErrorNotFound` (no `401`); treat it as terminal. A decision cannot be replayed.
 
+**Sandbox:** card transaction simulations do not raise 3DS challenges. Raise one with the Helper API `POST /card/3ds/initiate` (see the wirex-baas-sandbox skill).
+
 ---
 
 ## Webhooks

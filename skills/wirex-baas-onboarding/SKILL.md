@@ -196,6 +196,8 @@ After registration, direct the user to complete KYC:
 
 Both are **POST** and accept an optional body `{ "verification_level": "SDD" }` (enum `N/A`, `BDD`, `SDD`, `XDDBridge`, `EDD`).
 
+**Questionnaire (SumSub Shared and KYC Sharing via API):** Wirex needs the `onboarding_survey_baas_v1` answers -- either pre-filled on the SumSub applicant or submitted after registration with `POST /api/v2/user/questionary` (`{ "questionary_id": "onboarding_survey_baas_v1", "sections": [...] }`, response `{}`). Users registered before this endpoint existed have no answers on file and need a submission. Sections, options and errors: [KYC-FLOWS.md](references/KYC-FLOWS.md#submitting-the-questionnaire-via-api).
+
 See [KYC-FLOWS.md](references/KYC-FLOWS.md) for detailed flow walkthroughs with code examples.
 
 ---
