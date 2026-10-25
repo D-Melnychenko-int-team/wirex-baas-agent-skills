@@ -8,7 +8,7 @@ evals:
   - question: "How do I simulate a SEPA bank deposit in the sandbox? What Helper API endpoint do I call and what fields are required?"
     criteria:
       - "Specifies /bank/sepa/deposit as the endpoint"
-      - "Lists region, email, and amount as required fields"
+      - "Lists email and amount as required fields (region optional, GB)"
       - "Does NOT say Bearer token or Authorization header is needed for the Helper API"
 
   - question: "What card transaction types can I simulate in the sandbox, and what fields do the simulation endpoints accept?"
