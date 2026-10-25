@@ -203,6 +203,8 @@ const { trade_id } = await sdk.api.baas.swap.execute({
 
 The estimate carries `trade_rate` and `expiration_time` (RFC3339); pay and execute before it expires.
 
+Under the hood `swap.estimate` calls `POST /api/v1/fx/estimate` and `swap.execute` calls `POST /api/v1/fx` (see the REST FX guide `retail-fx`). Observed live in sandbox: the user needs an active capability (unverified user -> `400` "Capability is not active"); minimum source amount 10 (`400` "Amount is below minimum allowed amount", `error_details` `min_amount: 10`); both amounts at once -> `400` "Only one of source_asset_amount or destination_asset_amount can be provided"; the response also carries `*_precise` amounts, `*_decimals` and `rate_decimals`, and an estimate lives about 120 s.
+
 ### Yield
 
 ```typescript
@@ -219,6 +221,12 @@ const addresses = await sdk.crypto.smartDepositAddress.initializeSmartDepositAdd
 ```
 
 Funds are bridged to the SDK chain: `8453`/`84532` -> `BASE`, `5042`/`5042002` -> `ARC` (Rhino.fi has no testnets, so testnet IDs resolve to the mainnet code). Deposit networks: the destination chain itself, Base, Arbitrum, BNB Chain, Ethereum, Kaia, Polygon, Optimism, TRON, Solana, Stellar. Chains the destination rejects are skipped with a warning (e.g. USDT-only Kaia and TRON towards Arc). Requires `rhinoApiKey`.
+
+## Live check (sandbox, SDK 0.1.12, 2026-10-25)
+
+Run against sandbox (`env: 'dev'`, `chainId: 84532`) with a fresh EOA and the raw-private-key adapter above. These worked as documented: `createSDK`, `getSmartWalletAddress`, `isPolicyInstalled`/`isExecutorInstalled` (false -> true), `onboarding.allInOneStepOnboarding()` (one sponsored UserOperation; the wallet was then in Accounts), `token.getToken` (`{ access_token, token_type: "Bearer", expires_at }`), `setAuthState`, `registerUser` (JWT + `initialData`, first try, no indexer retry needed), `login` (`{ access_token, expires_at }`), `isAuthenticated`, `getAuthHeaders` (`Authorization`, `X-User-Wallet`), `user.getUserV2`, `wallet.getWallet`, `bank.getAccounts` / `recipients.getRecipients` / `activity.getFeed` / `cards.getCards` (all `{ data: [] }`), `cards.getActive3dsRequests` (bare `[]`), `config.getConfig`, `withdrawal.getWithdrawalRequests`, `yield.fetchYieldData` (`{ apy: 5, currentPendingYield, weeklyYield, lifeTimeYield }`), `crypto.getToken('WEUR')`, `smartDepositAddress` without `rhinoApiKey` -> `ConfigurationError` "rhinoApiKey is required to use smartDepositAddress.", `clearAuth` + `ensureAuthenticated` -> `AuthenticationError` "User is not authenticated. Please login first.". Transfers, `swap.execute` and card issuance were not run through the SDK.
+
+> `NetworkError` for a 4xx carries only "Request failed with status code 400" in its message; the API's `error_reason` / `error_description` were not found on the error object. When debugging, repeat the call over raw HTTP to see the body.
 
 ## Error handling
 
