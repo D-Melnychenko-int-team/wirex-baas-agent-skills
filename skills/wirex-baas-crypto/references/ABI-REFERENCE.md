@@ -111,7 +111,7 @@ function createUserAccountWithWallet(bytes16 parentEntity) external
 
 | Name         | Type    | Description                                  |
 |-------------|---------|----------------------------------------------|
-| parentEntity | bytes16 | The BaaS partner's entity identifier (UUID)  |
+| parentEntity | bytes16 | Your `partner_id` (16-byte hex)               |
 
 ### getUserAccount
 
@@ -181,23 +181,23 @@ event UserAccountCreated(
 
 ### Account Status Codes
 
-| Code | Name    | Description                                |
-|------|---------|--------------------------------------------|
-| 0    | None    | Account does not exist                     |
-| 1    | Pending | Account created, awaiting activation       |
-| 2    | Active  | Account is fully operational               |
-| 3    | Blocked | Account is temporarily suspended           |
-| 4    | Deleted | Account has been permanently deactivated   |
+| Code | Name                  |
+|------|-----------------------|
+| 0    | None (not registered) |
+| 1    | Pending               |
+| 2    | Active                |
+| 3    | Blocked               |
+| 4    | Deleted               |
 
 ### Verification Status Codes
 
-| Code | Name     | Description                                   |
-|------|----------|-----------------------------------------------|
-| 0    | None     | No verification submitted                     |
-| 1    | Applied  | Verification application submitted            |
-| 2    | InReview | Verification is being reviewed                |
-| 3    | Approved | Verification approved (KYC complete)          |
-| 4    | Rejected | Verification rejected                         |
+| Code | Name     |
+|------|----------|
+| 0    | None     |
+| 1    | Applied  |
+| 2    | InReview |
+| 3    | Approved |
+| 4    | Rejected |
 
 ### Full ABI Fragment
 
@@ -372,7 +372,7 @@ Same tuple structure as `retrieveAllTokensV2` for a single token.
 
 ## Kernel v3.1
 
-The Kernel account ABI is provided by the ZeroDev SDK (`KernelV3_1AccountAbi` from `@zerodev/sdk`); for the complete ABI see the ZeroDev SDK documentation. Key functions used for Smart Wallet setup (module installation, policy as root validator) are listed below.
+The Kernel account ABI is provided by the ZeroDev SDK (`KernelV3_1AccountAbi` from `@zerodev/sdk`); for the complete ABI see the ZeroDev SDK documentation. Key functions used for Smart Wallet setup (module installation, policy as root validator) are listed below. The Wirex docs show only function names and argument names; the Solidity types and mutability below are taken from the ZeroDev Kernel v3.1 ABI, not from the Wirex docs.
 
 ### installModule
 

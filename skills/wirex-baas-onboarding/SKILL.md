@@ -171,7 +171,7 @@ Three KYC flows are available, each suited to different integration depths. Wire
 | **Registration Fields** | `initial_data.profile.email` + `initial_data.residence_address.country` | `sharing_data.sharing_token` + `sharing_data.email` | Full `initial_data` (profile + residence_address) + documents |
 | **Approval** | None | Wirex audit + 3-sided agreement | Wirex audit, Enterprise model |
 | **Partner Effort** | Redirect user to URL or embed SumSub SDK | Generate SumSub share token | Do full KYC yourself, upload docs |
-| **Best For** | Quick MVP / low volume | Partners already using SumSub | Full white-label experience |
+| **Best For** | Partners without existing KYC infrastructure | Partners already using SumSub | Partners with established KYC processes |
 
 ### Verification Statuses
 

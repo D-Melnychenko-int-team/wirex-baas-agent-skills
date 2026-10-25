@@ -33,6 +33,8 @@ SEPA accounts **require activation**: verification alone does not provision an I
 | `NotRequired`                          | Capability does not apply to this user                                |
 | `NotAvailable`                         | Not available for the user's country of residence                     |
 
+> Note: docs differ. `ExternalProviderVerificationRequired` and `ExternalProviderRegistrationPending` (and the `/api/v1/bank/accounts/init` and `/complete` endpoints) appear only in the SEPA bank details guide; the API reference `CapabilityStatus` enum lists only `Active`, `ActivationNotStarted`, `InProgress`, `NotFulfilled`, `NotRequired`, `NotAvailable`, and has no reference page for `init` / `complete`.
+
 ### Activate SEPA Account (standard)
 
 **POST /api/v1/bank/accounts**
@@ -276,7 +278,7 @@ Execute a SEPA transfer using the estimation ID or a direct amount.
 | Field          | Type   | Required | Description                                          |
 |----------------|--------|----------|------------------------------------------------------|
 | account_id     | string | Yes      | The SEPA bank account ID (`{account_id}:{details_id}`) |
-| token_address  | string | Yes      | Token to charge from the user's balance (must be in `estimated_amounts` when using an estimation) |
+| token_address  | string | Yes      | Token to charge from the user's balance |
 | estimation_id  | string | No*      | Estimation ID from the estimate step                 |
 | amount         | number | No*      | Fiat amount (if not using estimation; uses current market rates) |
 | reference      | string | No       | Payment reference                                    |
@@ -323,7 +325,7 @@ Creates ACH bank account credentials (account number and routing number) for the
 }
 ```
 
-After activation the capability becomes `InProgress` and a bank account webhook is sent when the account is ready. Then use `GET /api/v1/bank/accounts` to retrieve the full account details (account number, routing number). The response follows the same `accounts[]` structure as SEPA, with `details.account_number` and `details.routing_number`.
+After activation the capability becomes `InProgress` and a bank account webhook is sent when the account is ready. Then use `GET /api/v1/bank/accounts` to retrieve the full account details (account number, routing number). The response follows the same structure as SEPA (`data[]` in the API reference, `accounts[]` in the guides), with `details.account_number` and `details.routing_number`.
 
 ---
 
@@ -339,7 +341,7 @@ Estimate the cost and exchange rate for an ACH transfer.
 {
   "account_id": "{account_id}:{details_id}",
   "amount": 250.00,
-  "tokens": ["WUSD"],
+  "tokens": ["0xb4bB2032A73A53C0Aa7Dc9ee2d9658a978fA7bC2"],
   "recipient": {
     "first_name": "Bob",
     "last_name": "Johnson"

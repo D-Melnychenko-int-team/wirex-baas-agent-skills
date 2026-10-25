@@ -34,7 +34,7 @@ The Wirex BaaS card system provides Visa virtual, plastic, and metal card issuan
 
 On v3, `BridgeVirtualCard` / `BridgePlasticCard` capabilities let an order resolve to the Bridge rail (Visa is tried first). Metal has no Bridge counterpart.
 
-Check eligibility with `GET /api/v2/user` -> `capabilities[]`. Capability `status`: `Active` (can issue), `NotFulfilled` (see `status_reason`, e.g. missing verification level), `NotAvailable`.
+Check eligibility with `GET /api/v2/user` -> `capabilities[]`. Capability `status`: `Active` (can issue), `NotFulfilled` (see `status_reason`, e.g. missing verification level), `NotAvailable`; the API reference enum also has `ActivationNotStarted`, `InProgress`, `NotRequired` (the guide lists only the first three).
 
 ---
 
@@ -50,7 +50,7 @@ Issuing a card always carries an issuance fee paid in crypto, **if fees are enfo
 | Issue endpoints | `POST /api/v1/cards/virtual\|plastic\|metal` | `POST /api/v2/cards/virtual\|plastic\|metal` | `POST /api/v3/cards/virtual\|plastic\|metal` |
 | Works in | On-chain and External Authorization | On-chain and External Authorization | On-chain only |
 
-Common steps: `GET /api/v1/cards/{type}/fees/{country}` (type `virtual`/`plastic`/`metal`, case-insensitive) -> create fee invoice (body `token_address`, `delivery_provider` for physical) -> issue card. Physical cards also use `GET /api/v1/cards/delivery/countries` (array of country codes) and `GET /api/v1/cards/delivery/methods/{country}` (array with `provider`, `fee`, `currency`). Physical cards need `delivery_address` (`line1`, `city`, `zip_code`, `country` required; `zip_code` always required, send a placeholder like `"00000"` where no postal code exists). The API reference documents `POST /api/v2/cards/plastic` twice with different names for this field: `zip_code` ("direct invoice" page) and `postal_code` ("Issue plastic card (v2)" page, newer) — confirm with Wirex which one your flow expects. `card_name` 1-50 chars, `name_on_card` 2-26 chars.
+Common steps: `GET /api/v1/cards/{type}/fees/{country}` (type `virtual`/`plastic`/`metal`, case-insensitive) -> create fee invoice (body `token_address`, `delivery_provider` for physical) -> issue card. Physical cards also use `GET /api/v1/cards/delivery/countries` (array of country codes) and `GET /api/v1/cards/delivery/methods/{country}` (array with `provider`, `fee`, `currency`). Physical cards need `delivery_address` (`line1`, `city`, `zip_code`, `country` required; `zip_code` always required, send a placeholder like `"00000"` where no postal code exists). The API reference documents `POST /api/v2/cards/plastic` twice with different names for this field: `zip_code` ("direct invoice" page) and `postal_code` ("Issue plastic card (v2)" page, newer) — confirm with Wirex which one your flow expects. `card_name` 1-50 chars, `name_on_card` 2-26 chars per the card-issuance guide (the validation-rules guide says it is not enforced by the API; the card processor may still reject with `400 "Request failed due to external validation failure"`).
 
 v3 extras: `GET /api/v3/cards/config` lists orderable formats/payment systems/designs/card programs/countries. `payment_system` is `Visa` or `MasterCard`. `card_wallet_address` is required only when the order resolves to Bridge (a confirmed wallet of type `Card`), rejected on Visa and always rejected for metal. The rail is never chosen in the request.
 
@@ -74,7 +74,7 @@ See [reference](references/REFERENCE.md) for request/response shapes and errors.
 | `Blocked` | Temporarily blocked; can be unblocked |
 | `Closed` | Permanently closed |
 
-Each card carries `allowed_actions[]` (types `Activate`, `Block`, `Unblock`, `Close`, `SetLimit`, `GetDetails`, `GetCvv`, `GetPin`, with `relative_path`); it reflects status only, not token scope. Action gates: Activate only in `NotActivated`; Block only `Active`; Unblock only `Blocked`; Close in `Active`/`Blocked`; limits and details/CVV/PIN only `Active`; rename works in any status. Refusals are `ErrorInvalidStatus`.
+Each card carries `allowed_actions[]` (types `Activate`, `Block`, `Unblock`, `Close`, `SetLimit`, `GetDetails`, `GetCvv`, `GetPin`, `SetActiveBalance`, with `relative_path`); it reflects status only, not token scope. Action gates: Activate only in `NotActivated`; Block only `Active`; Unblock only `Blocked`; Close in `Active`/`Blocked`; limits and details/CVV/PIN only `Active`; rename works in any status. Refusals are `ErrorInvalidStatus`.
 
 ### Management Endpoints
 

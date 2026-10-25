@@ -124,7 +124,7 @@ Common request: `cardId` (UUID), `amount`, `currency` (ISO 4217), `settlementAmo
 | Push funds to card (Original Credit) | `POST /card/original-credit` |
 | Balance inquiry | `POST /card/balance-inquiry` |
 
-Reversals, multi-auth/multi-clearing, refunds with representment, chargeback and adjustment flows (24 endpoints in total) are listed in the [reference](references/REFERENCE.md#all-flow-endpoints). `POST /card/auth-and-multi-clearing` also requires `clearingAmounts` (array of numbers summing to the auth amount).
+Reversals, multi-auth/multi-clearing, refunds with representment, chargeback and adjustment flows (25 endpoints in total) are listed in the [reference](references/REFERENCE.md#all-flow-endpoints). `POST /card/auth-and-multi-clearing` also requires `clearingAmounts` (array of numbers summing to the auth amount).
 
 ---
 

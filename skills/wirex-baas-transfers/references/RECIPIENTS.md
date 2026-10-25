@@ -41,7 +41,7 @@ Retrieve a paginated list of all recipients.
 
 | Parameter   | Type    | Required | Default | Description              |
 |------------|---------|----------|---------|--------------------------|
-| page_number | integer | No       | 0       | Page index (0-indexed)   |
+| page_number | integer | No       | 0       | Page number; the guides disagree (0-indexed default vs 1-indexed). `0` and `1` both return the first page (observed live, see BANKING.md) |
 | page_size   | integer | No       | 25      | Items per page           |
 | sort        | string  | No       | name    | `name` (ascending) or `usage` (descending usage count) |
 
@@ -92,10 +92,7 @@ Retrieve a paginated list of all recipients.
         }
       ]
     }
-  ],
-  "total_count": 2,
-  "page_number": 0,
-  "page_size": 25
+  ]
 }
 ```
 
@@ -362,7 +359,7 @@ Create a new recipient with personal information and payment details.
 
 Request object key matches the type: `card`, `sepa`, `ach`, `crypto`, `faster_payments` (request) / `faster_payment` (response), `swift`, `spei`, `pix`, `fps_hk`, `imps`, `instapay`, `bi_fast`, `nip`, `ipp`, `pse`, `cross_chain_crypto`. Exactly the object matching `type` must be present.
 
-**Response (201 Created):**
+**Response (200 OK):**
 
 ```json
 {
@@ -588,7 +585,7 @@ Each payment type requires different fields when creating or updating payment de
 
 | Field          | Type   | Required | Description                    |
 |---------------|--------|----------|--------------------------------|
-| account_number | string | Yes      | UK bank account number (8 digits) |
+| account_number | string | Yes      | UK bank account number (8-18 digits) |
 | sort_code      | string | Yes      | UK sort code (6 digits)        |
 
 ### Swift

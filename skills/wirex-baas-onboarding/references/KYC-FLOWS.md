@@ -344,7 +344,7 @@ Available in Flow 2 (SumSub Shared) and Flow 3 (KYC Sharing via API). Once the u
 
 ```
 POST /api/v2/user/questionary
-Authorization: Bearer <user token>
+Authorization: Bearer <access token>   # token type not specified in the guides
 Content-Type: application/json
 ```
 
@@ -558,9 +558,10 @@ All errors follow the standard format:
 
 ### Registration Errors
 
-| HTTP | Error Reason | Description |
-|------|-------------|-------------|
-| 400 | `ErrorInvalidField` | Field format invalid (user_address, email, country, etc.) |
-| 400 | `ErrorMissingField` | Required field missing |
-| 400 | `ErrorNotFound` | Wallet not registered in Accounts contract |
-| 400 | `ErrorAlreadyExists` | Email or wallet address already registered |
+| Error Reason | Description |
+|-------------|-------------|
+| `ErrorInvalidField` | Field format invalid (user_address, email, country, etc.) |
+| `ErrorNotFound` | Wallet not registered in Accounts contract |
+| `ErrorAlreadyExists` | Email or wallet address already registered |
+
+The guides list these reasons without a per-reason HTTP status (the example response above shows `ErrorInvalidField` under `CategoryValidationFailure`, 400). Missing required fields are listed in the validation tables as "Missing / Required field", without a named reason.

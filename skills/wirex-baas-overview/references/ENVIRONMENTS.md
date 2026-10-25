@@ -50,7 +50,7 @@ Card tokenization for push-to-card transfers requires calls to Wirex's PCI-compl
 
 XRPL is a settlement chain selected with the `X-Chain-Id` header; accounts are created via `POST /api/v1/accounts` instead of on-chain wallet deployment, and it settles in RLUSD. Confirm the XRPL chain ID for your target environment with Wirex. The ID above is the sandbox value from the XRPL addendum.
 
-> **Important:** The Stellar chain ID value `9223372036854775806` is identical in both sandbox and production. The API base URL determines which network is actually used. Always ensure your base URL matches your intended environment.
+> **Important:** The Stellar chain ID value `9223372036854775806` is identical in both sandbox and production. Always ensure your base URL matches your intended environment (sandbox or production).
 
 ---
 
@@ -151,20 +151,20 @@ const tokensRegistryAddress = await registry.contractByName('TokensRegistry');
 | Token | Symbol | Address | Decimals |
 |---|---|---|---|
 | USD Coin | USDC | `0x7Af7cDbd557eD302F7538Db1e3d094C8BBcA665c` | 6 |
-| Tether USD | USDT | `0x2C6c7c00ACa9B9D8446d107367485079b0471706` | 18 |
+| Tether | USDT | `0x2C6c7c00ACa9B9D8446d107367485079b0471706` | 18 |
 | Euro Coin | EURC | `0xF70461ffb413981852683657A310892227e3989e` | 6 |
-| Wirex USD | WUSD | `0x0774164DC20524Bb239b39D1DC42573C3E4C6976` | 18 |
-| Wirex EUR | WEUR | `0x5c55F314624718019A326F16a62A05D6C6d8C8A2` | 18 |
+| WUSD | WUSD | `0x0774164DC20524Bb239b39D1DC42573C3E4C6976` | 18 |
+| WEUR | WEUR | `0x5c55F314624718019A326F16a62A05D6C6d8C8A2` | 18 |
 
 ### Production Tokens -- Base (Chain ID: 8453)
 
 | Token | Symbol | Address | Decimals |
 |---|---|---|---|
 | USD Coin | USDC | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` | 6 |
-| Tether USD | USDT | `0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2` | 6 |
+| Tether | USDT | `0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2` | 6 |
 | Euro Coin | EURC | `0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42` | 6 |
-| Wirex USD | WUSD | `0xb4bB2032A73A53C0Aa7Dc9ee2d9658a978fA7bC2` | 18 |
-| Wirex EUR | WEUR | `0x379e120C1921bFD8f5E0A1a3C699e7e800b66606` | 18 |
+| WUSD | WUSD | `0xb4bB2032A73A53C0Aa7Dc9ee2d9658a978fA7bC2` | 18 |
+| WEUR | WEUR | `0x379e120C1921bFD8f5E0A1a3C699e7e800b66606` | 18 |
 
 ### Production Tokens -- Tempo (Chain ID: 4217)
 
@@ -248,9 +248,9 @@ A **Rhino.fi API Key** is provided for multi-chain deposits: creating smart depo
 | Initial development | Sandbox | `https://api-baas.wirexapp.tech` | `84532` (Base Sepolia) |
 | Stellar integration testing | Sandbox | `https://api-baas.wirexapp.tech` | `9223372036854775806` |
 | XRPL integration testing | Sandbox | `https://api-baas.wirexapp.tech` | `9223372036854775805` (confirm with Wirex) |
-| Card tokenization testing | PCI Sandbox | `https://wx-acquiring-card-manager-uat.wirexapp.com` | `84532` |
+| Card tokenization testing | PCI Sandbox | `https://wx-acquiring-card-manager-uat.wirexapp.com` | n/a (no `X-Chain-Id` documented for the PCI host) |
 | Pre-production validation | Sandbox | `https://api-baas.wirexapp.tech` | `84532` |
 | Live Base operations | Production | `https://api-baas.wirexapp.com` | `8453` |
 | Live Stellar operations | Production | `https://api-baas.wirexapp.com` | `9223372036854775806` |
 | Live Tempo operations | Production | `https://api-baas.wirexapp.com` | `4217` |
-| Live card tokenization | PCI Production | `https://wx-acquiring-card-manager.wirexapp.com` | `8453` |
+| Live card tokenization | PCI Production | `https://wx-acquiring-card-manager.wirexapp.com` | n/a (no `X-Chain-Id` documented for the PCI host) |

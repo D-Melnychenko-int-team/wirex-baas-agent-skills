@@ -349,7 +349,7 @@ Each flow returns the ISO messages it produced. Fields are present only when the
 | `POST /card/debit-adjustment` | Debit adjustment |
 | `POST /card/balance-inquiry` | Balance inquiry |
 
-> The earlier `/card/transaction/pos|epos|atm|credit` endpoints are not in the current docs.
+> The earlier `/card/transaction/pos|epos|atm|credit` endpoints are not listed in the current docs (the 3DS section mentions `/card/transaction/epos` only in passing, without a spec).
 
 ---
 

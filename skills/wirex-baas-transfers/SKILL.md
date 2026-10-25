@@ -17,7 +17,7 @@ This skill covers all money transfer capabilities in the Wirex Banking-as-a-Serv
 All transfer types in Wirex BaaS follow the **estimate-then-execute** pattern:
 
 1. **Estimate**: Submit transfer details to get a cost estimate. The response includes an `id` (estimation ID; `estimation_id` for card transfers) and an `expires_at` Unix timestamp, plus `estimated_amounts[]` (one entry per token, with `amount`, `precise_amount` in the token's smallest unit, `rate` and, where reported, `fee_amount` / `fee_precise_amount`).
-2. **Execute**: Submit the transfer using the `estimation_id` from step 1 (bank transfers can alternatively specify `amount` directly, not both) and the `token_address` to charge. The estimation locks in exchange rates and fees.
+2. **Execute**: Submit the transfer using the `estimation_id` from step 1 (bank transfers can alternatively specify `amount` directly, not both) and the `token_address` to charge. Executing with an `estimation_id` uses the quoted amounts until `expires_at`.
 
 This two-step process ensures the user sees exact costs before committing to the transfer.
 
@@ -37,7 +37,9 @@ SEPA (Single Euro Payments Area) enables EUR bank transfers. SEPA accounts are a
 2. **Activate the account**:
    - `ActivationNotStarted`: `POST /api/v1/bank/accounts` with `{ "account_type": "Sepa" }` (returns `{ "details_id": ... }`).
    - `ExternalProviderVerificationRequired`: wallet-linking path: `POST /api/v1/bank/accounts/init` (`{ "chain": "8453" }`, numeric chain ID as a string, returns `challenge` + `wallet_address`) → sign the challenge with the user's Primary wallet → `POST /api/v1/bank/accounts/complete` (`{ "chain", "signed_challenge" }`).
-   - `ExternalProviderRegistrationPending` or `InProgress`: wait for the `/webhook/accounts/fiat` bank account webhook. `Active`: already provisioned.
+   - `ExternalProviderRegistrationPending`: wait, then re-check the capability.
+   - `InProgress`: wait for the `/webhook/accounts/fiat` bank account webhook. `Active`: already provisioned.
+   - Note: docs differ. `ExternalProviderVerificationRequired` / `ExternalProviderRegistrationPending` and the `init` / `complete` endpoints are documented only in the SEPA bank details guide, not in the API reference `CapabilityStatus` enum.
    - The two paths are mutually exclusive; calling the wrong one returns `400`.
 3. **Retrieve bank details**: Get the IBAN and BIC for the account.
    ```
@@ -119,7 +121,7 @@ Push-to-Card allows sending funds directly to a Visa or Mastercard debit card vi
    POST /api/v1/cards/transfer
    ```
 
-**Card validations**: Luhn check, Visa/Mastercard only, not expired. The tokenization response is `{ "value": "tok_..." }`; the recipient's `payment_details[].id` is used as `external_card_id` in the estimate. In browsers, `@wirexapp/card-oct-web` can tokenize inside Wirex iframes instead of calling the PCI endpoint directly.
+**Card validations**: Luhn check, Visa/Mastercard only, not expired. The tokenization response is `{ "value": "tok_..." }`; the recipient's `payment_details[].id` is used as `external_card_id` in the estimate. (The PCI SDK payout-collect guide says `external_card_id` is the card token instead; see PUSH-TO-CARD.md.) In browsers, `@wirexapp/card-oct-web` can tokenize inside Wirex iframes instead of calling the PCI endpoint directly.
 
 See [references/PUSH-TO-CARD.md](references/PUSH-TO-CARD.md) for full details including PCI environment URLs.
 

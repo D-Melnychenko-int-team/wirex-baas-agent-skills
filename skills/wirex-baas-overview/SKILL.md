@@ -144,7 +144,7 @@ Wirex BaaS operates on the following blockchain networks:
 | Stellar Testnet | `9223372036854775806` | Stellar testnet (same chain ID as production) |
 | XRPL | `9223372036854775805` | XRP Ledger, Wirex-assigned ID (not EIP-155); settles in RLUSD |
 
-> **Note:** The Stellar chain ID is the same value (`9223372036854775806`) in both sandbox and production. The environment base URL determines which Stellar network is used. XRPL has no EIP-155 chain ID; confirm the value for your environment with Wirex.
+> **Note:** The Stellar chain ID is the same value (`9223372036854775806`) in both sandbox and production. Use the base URL that matches your environment (sandbox or production). XRPL has no EIP-155 chain ID; confirm the value for your environment with Wirex.
 
 ### Shared Sandbox Credentials
 
@@ -282,14 +282,14 @@ All API errors follow a consistent JSON format:
 ```json
 {
   "error_reason": "ErrorInvalidField",
-  "error_description": "The provided X-Chain-Id header value is not supported.",
+  "error_description": "Human-readable message",
   "error_category": {
     "category": "CategoryValidationFailure",
     "http_status_code": 400
   },
   "error_details": [
-    { "key": "field", "details": "X-Chain-Id" },
-    { "key": "issue", "details": "unsupported_value" }
+    { "key": "field", "details": "email" },
+    { "key": "issue", "details": "invalid_format" }
   ]
 }
 ```
@@ -308,14 +308,16 @@ All API errors follow a consistent JSON format:
 | Category | HTTP Status | Description | Recommended Action |
 |---|---|---|---|
 | `CategoryValidationFailure` | 400 | Invalid request parameters, missing headers, malformed data | Fix the request and retry |
-| `CategoryUnauthorized` | 401 | Invalid or expired token, insufficient permissions | Re-authenticate and retry |
-| `CategoryInternalFailure` | 500 | Server-side error | Retry with exponential backoff; contact support if persistent |
-| `CategoryTransientFailure` | 429 | Rate limiting | Back off exponentially and retry |
+| `CategoryUnauthorized` | 401 | Authentication failed (e.g., invalid or expired token) | Re-authenticate and retry |
+| `CategoryForbidden` | 403 | Authenticated, but the operation is not permitted | Check `error_reason` |
+| `CategoryInternalFailure` | 500 | Server-side failure | Check `error_reason` first; contact support if persistent |
+| `CategoryTransientFailure` | 429 | Transient rejection (rate limiting) | Back off exponentially and retry |
+| `CategoryTransportFailure` | 503 | A downstream service was unreachable | Check `error_reason`; contact support if persistent |
 
 ### Error Handling Best Practices
 
-1. **Always check the `error_category`** to determine retry strategy.
-2. **Implement exponential backoff** for `CategoryTransientFailure` and `CategoryInternalFailure` errors.
+1. **Branch on `error_reason`**, not on the HTTP status -- a reason is not bound to one category across every endpoint. Use `error_category` only as a hint.
+2. **Implement exponential backoff** for `CategoryTransientFailure` (429) errors.
 3. **Do not retry** `CategoryValidationFailure` errors without modifying the request.
 4. **Refresh tokens proactively** -- cache the S2S token and refresh 5 minutes before expiry to avoid `CategoryUnauthorized` errors.
 5. **Log `error_reason` and `error_description`** for debugging and support escalations.

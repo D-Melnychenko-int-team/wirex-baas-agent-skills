@@ -9,7 +9,7 @@ X-User-Wallet: {userEoaAddress}
 X-Chain-Id: {chainId}
 ```
 
-With an S2S token, provide **exactly one** of `X-User-Wallet` (EOA, not the Smart Wallet), `X-User-Email` or `X-User-Id` (more than one is rejected with `ErrorInvalidField`, none with `ErrorMissingField`). With a Wirex user token, identity is in the token. A missing user returns `400` with `ErrorNotFound` ("User account not found") -- there is no `404`. The capabilities block is assembled from the user's cards and bank accounts, so a card or banking outage fails the whole call with `500` rather than returning a partial profile.
+With an S2S token, provide **exactly one** of `X-User-Wallet` (EOA, not the Smart Wallet), `X-User-Email` or `X-User-Id` (more than one is rejected with `ErrorInvalidField`, none with `ErrorMissingField`). With a Wirex user token, identity is in the token. A missing user returns `400` with `ErrorNotFound` ("User account not found"). The guide says there is no `404`, but the API reference for `GET /api/v2/user` also lists a `404` "User not found" (docs differ; handle both). The capabilities block is assembled from the user's cards and bank accounts, so a card or banking outage fails the whole call with `500` rather than returning a partial profile.
 
 The same object is delivered by the `POST {your_webhook_base_url}/v2/webhooks/user` webhook.
 
@@ -142,7 +142,7 @@ Typical flow: `NotFulfilled` → `ActivationNotStarted` → `InProgress` → `Ac
 
 ## Capability Types
 
-Bank account capabilities require KYC verification before activation. Prerequisites for the `*In/Out*Party` capabilities are the corresponding `*Account` capability (e.g. `SepaOut1stParty` requires `SepaAccount`).
+Bank account capabilities require KYC verification before activation. Example: `SepaOut1stParty` requires `SepaAccount`; read each capability's `prerequisites` array instead of assuming a rule.
 
 ### Card Capabilities
 
@@ -186,7 +186,7 @@ Bank account capabilities require KYC verification before activation. Prerequisi
 | `IppOut3rdParty` | Thailand | Send IPP transfers |
 | `PseOut3rdParty` | Colombia | Send PSE transfers |
 
-The API reference enum also contains `FedwireOut3rdParty`, `SwiftOut3rdParty`, `CipsOut3rdParty`, `ChatsOut3rdParty`, `CpnExternalProfile`, `TripleAExternalProfile`, `StableExchange`, `SavingsAccount` and `Loan`, which the guides do not describe.
+The API reference enum also contains `FedwireOut3rdParty`, `SwiftOut3rdParty`, `CipsOut3rdParty`, `ChatsOut3rdParty`, `CpnExternalProfile`, `TripleAExternalProfile`, `SavingsAccount` and `Loan`, which the retail guides do not describe. `StableExchange` is described in the FX guide: it must be `Active` on the user for FX (users without it are refused on both FX endpoints).
 
 ---
 

@@ -90,7 +90,7 @@ The activity system categorizes all financial operations. Each activity has a `t
 | `CardTopup` | Card top-up (inbound, `ExternalCard` source to `Wallet` destination) |
 | `YieldClaim` | Yield or reward claim |
 
-The API reference enum additionally lists `Pix`, `FpsHk`, `Imps`, `Instapay`, `BiFast`, `Nip`, `Ipp`, `Pse`, `Fedwire`, `Chats`, `Cips`, `SavingsTransaction`, `LoanTransaction`, `Cryptoback` (the Activity History guide documents only the types above `CardTopup` in its table).
+The API reference enum additionally lists `Pix`, `FpsHk`, `Imps`, `Instapay`, `BiFast`, `Nip`, `Ipp`, `Pse`, `Fedwire`, `Chats`, `Cips`, `SavingsTransaction`, `LoanTransaction`, `Cryptoback` (the Activity History guide's type table omits `Spei` and `CardTopup`, which are in the API reference enum; the webhooks guide lists `Spei`).
 
 ### Activity Status Values
 

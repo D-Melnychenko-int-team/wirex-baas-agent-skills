@@ -35,7 +35,7 @@ npm install @wirexapp/wpay-baas-sdk viem
 import { createSDK } from '@wirexapp/wpay-baas-sdk';
 
 const sdk = await createSDK({
-  env: 'prod', // 'dev' -> sandbox (api-baas.wirexapp.tech, Base Sepolia 84532) | 'prod' -> production (api-baas.wirexapp.com, Base 8453)
+  env: 'prod', // 'dev' | 'prod'; chain follows `chainId` or the remote config `defaultChain`
   companyId: process.env.COMPANY_ID, // your partner_id (hex) from Wirex onboarding
   enableLogging: true, // optional
   getMainWalletClient: async () => mainWalletClient, // user's EOA wallet client (Privy, WalletConnect, raw key adapter, ...)

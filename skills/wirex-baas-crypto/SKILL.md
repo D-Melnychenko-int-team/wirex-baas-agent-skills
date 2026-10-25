@@ -23,6 +23,8 @@ Wirex BaaS uses a **unified balance model** where all user funds are represented
 
 All balances across the platform (card spending, bank transfers, crypto deposits) are unified into these two tokens. There is no need to manage multiple token balances or perform manual conversions.
 
+> Note: docs differ. The unified-balance guide (`retail-unified-balance`) lists only WUSD and WEUR; the crypto-assets overview (`retail-crypto-assets`) also mentions WGBP.
+
 ### Token Wrapping
 
 - **Deposits**: When a user deposits USDC, USDT, or EURC, the tokens are bridged to Base and wrapped into WUSD or WEUR at a 1:1 ratio. The wrapping process mints the corresponding W-token.
@@ -79,11 +81,11 @@ Retrieve the user's wallet with its balances. Optional query parameter: `wallet_
 
 ## Global Deposit Addresses (Multi-Chain via Rhino.fi)
 
-Wirex uses **Rhino.fi** to generate deposit addresses across 9 supported chains. Addresses are created via the Wirex SDK (`sdk.crypto.smartDepositAddress.initializeSmartDepositAddresses()`, requires `rhinoApiKey` in `createSDK`) or the Rhino.fi SDK directly (API key provided by Wirex). Funds sent to them are bridged to Base and wrapped into WUSD/WEUR.
+Wirex uses **Rhino.fi** to generate deposit addresses across 9 supported chains (per the Global Deposit Addresses guide; the SDK guide's deposit-network list also names Stellar, and Arc as a possible destination chain). Addresses are created via the Wirex SDK (`sdk.crypto.smartDepositAddress.initializeSmartDepositAddresses()`, requires `rhinoApiKey` in `createSDK`) or the Rhino.fi SDK directly (API key provided by Wirex). Funds sent to them are bridged to Base and wrapped into WUSD/WEUR.
 
 ### Supported Chains and Tokens
 
-| Chain     | Chain ID | USDT | USDC | EURC | Typical bridge time | Address Type     |
+| Chain     | Chain ID | USDT | USDC | EURC | Typical bridge time (guide timing table) | Address Type     |
 |-----------|----------|------|------|------|---------------------|------------------|
 | Ethereum  | 1        | Yes  | Yes  | No   | 3-5 minutes         | Shared EVM       |
 | Arbitrum  | 42161    | Yes  | Yes  | No   | 1-3 minutes         | Shared EVM       |
@@ -94,6 +96,8 @@ Wirex uses **Rhino.fi** to generate deposit addresses across 9 supported chains.
 | Kaia      | 8217     | Yes  | No   | No   | not stated          | Shared EVM       |
 | TRON      | n/a      | Yes  | No   | No   | 1-3 minutes         | Separate address |
 | Solana    | n/a      | Yes  | Yes  | No   | 1-3 minutes         | Separate address |
+
+> Note: docs differ. The guide's Deposit Flow step says Rhino.fi bridges to Base "typically 5-15 minutes"; its Timing Expectations table gives the shorter figures above. Times depend on source chain finality and Rhino.fi processing.
 
 All EVM chains share a single global deposit address. TRON and Solana get separate addresses due to address-structure differences. Addresses are reusable across multiple deposits; each user has unique global addresses per chain family (EVM, TRON, Solana). Token contract addresses per chain are in [references/REFERENCE.md](references/REFERENCE.md).
 
@@ -115,7 +119,7 @@ After generating deposit addresses via the Rhino.fi SDK, link them to the Wirex 
 
 **GET /api/v1/wallets**
 
-Returns the user's wallets with balances; global deposit addresses have `wallet_type: "Global"` (other types: `Primary`, `Secondary`, `Card`).
+Returns the user's wallets with balances. The OpenAPI schema declares the 200 response as a single `WalletResponse` object, while the guide example shows a JSON array of wallets (the array form is shown in [references/REFERENCE.md](references/REFERENCE.md)); global deposit addresses have `wallet_type: "Global"` (other types: `Primary`, `Secondary`, `Card`).
 
 See [references/REFERENCE.md](references/REFERENCE.md) for the full Rhino.fi SDK configuration example, TRON/Solana address creation, and detailed request/response formats.
 

@@ -82,12 +82,12 @@ Exchanges partner credentials for an S2S access token using OAuth2 client creden
 }
 ```
 
-**Missing required field (400):**
+**Invalid grant type (400):**
 
 ```json
 {
-  "error_reason": "ErrorMissingField",
-  "error_description": "The 'grant_type' field is required.",
+  "error_reason": "ErrorInvalidField",
+  "error_description": "Invalid value for grant type",
   "error_category": {
     "category": "CategoryValidationFailure",
     "http_status_code": 400
@@ -138,7 +138,7 @@ The API reference security scheme for this endpoint names only `X-User-Wallet`; 
 ```json
 {
   "error_reason": "ErrorMissingField",
-  "error_description": "X-Chain-Id header is required",
+  "error_description": "X-Chain-Id header is missing",
   "error_category": {
     "category": "CategoryValidationFailure",
     "http_status_code": 400
@@ -151,7 +151,7 @@ The API reference security scheme for this endpoint names only `X-User-Wallet`; 
 ```json
 {
   "error_reason": "ErrorNotFound",
-  "error_description": "No user found with the provided wallet address",
+  "error_description": "Requested user was not found",
   "error_category": {
     "category": "CategoryValidationFailure",
     "http_status_code": 400
@@ -164,7 +164,7 @@ The API reference security scheme for this endpoint names only `X-User-Wallet`; 
 ```json
 {
   "error_reason": "ErrorExpired",
-  "error_description": "Token expired",
+  "error_description": "Token is expired",
   "error_category": {
     "category": "CategoryUnauthorized",
     "http_status_code": 401
@@ -197,7 +197,10 @@ Registers a new retail user authenticated through Privy.
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
-| `country` | string | Yes | User's country of residence (ISO 3166-1 alpha-2, e.g., `"US"`, `"GB"`). Email and wallet address are extracted from Privy tokens. |
+| `country` | string | Yes (per guide) | User's country of residence (ISO 3166-1 alpha-2, e.g., `"US"`, `"GB"`). Email and wallet address are extracted from Privy tokens. |
+| `referrer_address` | string | No | EOA address of the user who referred this user |
+
+> Note: docs differ. The KYC guide (`retail-kyc-hosted`) marks `country` as required and shows `email` in the body; the OpenAPI schema (`request.UserCreateUserRetailRequest`) has only `country` and `referrer_address` and marks neither as required.
 
 ### Success Response (200 OK)
 
@@ -281,7 +284,7 @@ Decoded S2S JWT payload:
   "company_id": "your-company-uuid",
   "scope": "partner:full",
   "iat": 1739525600,
-  "exp": 1739612400
+  "exp": 1739698400
 }
 ```
 
@@ -293,7 +296,7 @@ Decoded S2S JWT payload:
 | `company_id` | string | Your company UUID |
 | `scope` | string | Permission scope. S2S tokens have `partner:full` |
 | `iat` | integer | Issued-at timestamp (Unix seconds) |
-| `exp` | integer | Expiration timestamp (Unix seconds). Always `iat + 172800` (48 hours) |
+| `exp` | integer | Expiration timestamp (Unix seconds). `iat + 172800` (48 hours validity) |
 
 ### User Token Claims
 
@@ -303,13 +306,13 @@ User tokens include user-scoped claims in addition to the standard JWT fields. T
 
 ## Headers Reference
 
-### Required on All Requests (except /api/v1/token)
+### Common Headers
 
 | Header | Format | Example | Description |
 |---|---|---|---|
-| `Authorization` | `Bearer <token>` | `Bearer eyJhbGciOi...` | S2S or user access token |
-| `X-Chain-Id` | Numeric string | `84532` | Target blockchain network ID (required on all requests) |
-| `Content-Type` | MIME type | `application/json` | Request body content type |
+| `X-Chain-Id` | Numeric string | `84532` | Target blockchain network ID (required on all API requests per `retail-api-basics`) |
+| `Authorization` | `Bearer <token>` | `Bearer eyJhbGciOi...` | S2S or user access token. Most endpoints |
+| `Content-Type` | MIME type | `application/json` | Requests with a JSON body |
 
 ### User Identity Headers
 
@@ -369,16 +372,22 @@ All errors from authentication endpoints follow this format:
 }
 ```
 
-> **Note:** `error_category` is an **object** (not a string) containing `category` and `http_status_code`. `error_details` is an optional array with field-level context.
+> **Note:** `error_category` is an **object** (not a string) containing `category` and `http_status_code`. `error_details` is an optional array with field-level context. Do not parse `error_description` (`retail-error-reference`).
+>
+> Note: docs differ. The guides and examples show `error_reason` as a string (branch on it as the guide says); the OpenAPI schema `response.ErrorResponse` models it as an object `{"reason": "..."}`, and `error_category` also has `grpc_status_code`.
 
 ### Error Categories
 
-| Category | HTTP Status | Retry? | Description |
-|---|---|---|---|
-| `CategoryValidationFailure` | 400 | No (fix request first) | Request is malformed, missing required fields, or contains invalid values. |
-| `CategoryUnauthorized` | 401 | Yes (after re-auth) | Token is invalid, expired, or credentials are wrong. Obtain a new token and retry. |
-| `CategoryInternalFailure` | 500 | Yes (with backoff) | Server-side error. Retry with exponential backoff. |
-| `CategoryTransientFailure` | 429 | Yes (after delay) | Rate limit exceeded. Back off exponentially before retrying. |
+| Category | HTTP Status | Description |
+|---|---|---|
+| `CategoryValidationFailure` | 400 | Request is malformed, missing required fields, or contains invalid values. |
+| `CategoryUnauthorized` | 401 | Authentication failed (token is invalid or expired, or credentials are wrong). |
+| `CategoryForbidden` | 403 | Authenticated, but the operation is not permitted. |
+| `CategoryTransientFailure` | 429 | Transient rejection (rate limiting). The docs say to back off exponentially on 429 for `POST /api/v1/token`. |
+| `CategoryInternalFailure` | 500 | Server-side failure. `ErrorConfigurationInvalid` means a platform configuration problem: contact Wirex. |
+| `CategoryTransportFailure` | 503 | A downstream service was unreachable. |
+
+> Branch on `error_reason`, not on the HTTP status: a reason is not bound to one category across every endpoint (`retail-error-reference`). The docs give no per-category retry rules; retry advice in the Retry Strategy section is the skill's suggestion.
 
 ### S2S Token Exchange Errors
 
@@ -417,7 +426,6 @@ All errors from authentication endpoints follow this format:
 | 401 | `ErrorPermissionDenied` | ID token signature is not valid |
 | 401 | `ErrorMissingField` | Linked accounts claim is missing |
 | 400 | `ErrorMissingField` | Not all identifiers found in linked accounts |
-| 400 | `ErrorAlreadyExists` | User already registered |
 | 500 | `ErrorConfigurationInvalid` | Client application not registered (Privy App ID not configured) |
 
 ### User Token Errors
@@ -443,7 +451,9 @@ All errors from authentication endpoints follow this format:
 
 ## Retry Strategy
 
-### Recommended Exponential Backoff
+> Suggestion (skill advice, not Wirex-specified): the Wirex docs only say to back off exponentially on `429` (`retail-authentication`, `retail-auth-tokens`). The schedule and code below are an example, not Wirex behaviour. Do not retry `ErrorConfigurationInvalid` (500): contact Wirex.
+
+### Example Exponential Backoff
 
 ```
 Attempt 1: Wait 1 second
@@ -475,7 +485,7 @@ async function requestWithRetry(fn, maxRetries = 5) {
         continue;
       }
 
-      // Retry on transient and internal failures (429 / 500)
+      // Retry on transient failures (429); 500 retry here is a suggestion, not Wirex-specified
       if (
         category === 'CategoryTransientFailure' ||
         category === 'CategoryInternalFailure'

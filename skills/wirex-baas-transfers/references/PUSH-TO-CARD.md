@@ -50,8 +50,8 @@ Tokenize a card for use in Push-to-Card transfers. The card number is validated 
 |---------------|----------|------------------------------------|
 | Authorization  | Yes      | Bearer `{user_token}` (user-scoped, not S2S) |
 | Content-Type   | Yes      | `application/json`                 |
-| X-User-Wallet  | Yes      | The user's EOA wallet address      |
-| X-Chain-Id     | Yes      | The blockchain chain ID            |
+
+> Identity headers (`X-User-Wallet`, `X-Chain-Id`) are not documented for this endpoint; the user-scoped token carries the user identity.
 
 **Request Body:**
 
@@ -147,7 +147,7 @@ Register the tokenized card as a recipient for transfers.
 
 *Either (`first_name` + `last_name`) or `company_name` is required.
 
-**Response (201 Created):**
+**Response (200 OK):**
 
 ```json
 {
@@ -171,7 +171,7 @@ Register the tokenized card as a recipient for transfers.
 }
 ```
 
-Use the `payment_details[].id` as the `external_card_id` in the estimate step. (The card-transfer guide's field table describes `external_card_id` as the card token `card.card_id`, while its examples and the tokenization/recipients guides use `payment_details[].id`; this skill follows the latter.) `card_pan_last` must be exactly 4 digits.
+Use the `payment_details[].id` as the `external_card_id` in the estimate step. (The card-transfer guide's field table describes `external_card_id` as the card token `card.card_id`, while its examples and the tokenization/recipients guides use `payment_details[].id`; this skill follows the latter. The PCI SDK payout-collect guide states the opposite: `external_card_id` is the card token, the same value as `card.card_id`, and `payment_details[].id` is not accepted by the transfer endpoints. Not confirmed live: if the transfer endpoints reject the payment-details ID, retry with the card token `card.card_id`.) `card_pan_last` must be exactly 4 digits.
 
 ---
 
@@ -194,10 +194,10 @@ Estimate the cost and fees for a Push-to-Card transfer.
 
 ```json
 {
-  "external_card_id": "tok_abc123def456ghi789",
+  "external_card_id": "uuid-payment-details-id",
   "currency": "USD",
-  "amount": "50.00",
-  "tokens": ["WUSD"]
+  "amount": 50.00,
+  "tokens": ["0xb4bB2032A73A53C0Aa7Dc9ee2d9658a978fA7bC2"]
 }
 ```
 
@@ -299,7 +299,7 @@ Push-to-Card transfers progress through the following steps:
 
 **Steps:** Initiated → CryptoOut → Review → CardOut → Completed
 
-Activity `status` is `Pending`, `Completed` or `Failed` (`Cancelled` is not documented). The final `Completed` step type exists for push-to-card. Webhook `type` is `CardTransfer`, `direction` is always `Outbound`; `destination.card` carries `id`, `pan_last`, `payment_system` (`VISA` or `MASTERCARD`).
+Activity `status` is `Pending`, `Completed` or `Failed` (`Cancelled` is not documented; the card-transfer guide also lists `Processing`, which is not in the API reference enum). The final `Completed` step type exists for push-to-card. Webhook `type` is `CardTransfer`, `direction` is always `Outbound`; `destination.card` carries `id`, `pan_last`, `payment_system` (`VISA` or `MASTERCARD`).
 
 See [wirex-baas-webhooks reference](../wirex-baas-webhooks/references/REFERENCE.md) for complete activity webhook payloads (transfer type: `CardTransfer`).
 
@@ -326,6 +326,3 @@ Tokenization (PCI environment) errors, all HTTP 400: invalid card number (Luhn),
 | Issue                          | Cause                                     | Resolution                                |
 |--------------------------------|-------------------------------------------|-------------------------------------------|
 | Tokenization fails             | Invalid card number or unsupported network| Verify card is Visa/Mastercard and passes Luhn |
-| Estimation returns high fee    | Cross-currency transfer                   | Use matching currency (USD card with WUSD)|
-| OCT rejected by network        | Card issuer restrictions                  | Contact card issuer or try different card  |
-| Token expired                  | Time elapsed since tokenization           | Re-tokenize the card                      |

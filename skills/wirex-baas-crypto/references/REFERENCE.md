@@ -119,6 +119,8 @@ No query parameters are documented; identify global wallets by `wallet_type: "Gl
 
 **Response (200 OK):**
 
+> Note: docs differ. The OpenAPI reference declares the 200 schema as a single `WalletResponse` object; the guide (`retail-global-addresses`) shows a JSON array, as below.
+
 ```json
 [
   {

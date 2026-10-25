@@ -115,7 +115,8 @@ GET /api/v1/cards
 | `card_data.card_number_first_4` | Only while status is `Requested` or `NotActivated` |
 | `card_data.card_number_last_4`, `expiry_date` (`MM/YYYY`) | Only when status is not `Requested`/`NotActivated` |
 
-`allowed_actions[].type` values: `Activate`, `Block`, `Unblock`, `Close`, `SetLimit`, `GetDetails`, `GetCvv`, `GetPin`.
+`allowed_actions[].type` values: `Activate`, `Block`, `Unblock`, `Close`, `SetLimit`, `GetDetails`, `GetCvv`, `GetPin`, `SetActiveBalance`.
+> Note: docs differ. The guide table lists the first eight; `SetActiveBalance` appears only in the `GET /api/v1/cards` reference enum.
 
 ### Get Single Card
 
@@ -209,7 +210,7 @@ GET /api/v3/cards/config
 
 ## Card Issuance
 
-All issue endpoints return `200` with `{ "id": "<card id>" }`; the card starts `Requested` and moves to `NotActivated` once processed. Check capabilities first: `GET /api/v2/user` -> `capabilities[]` (`VisaVirtualCard`, `VisaPlasticCard`, `VisaMetalCard`, `BridgeVirtualCard`, `BridgePlasticCard`; status `Active`, `NotFulfilled`, `NotAvailable`).
+All issue endpoints return `200` with `{ "id": "<card id>" }`; the card starts `Requested` and moves to `NotActivated` once processed. Check capabilities first: `GET /api/v2/user` -> `capabilities[]` (`VisaVirtualCard`, `VisaPlasticCard`, `VisaMetalCard`, `BridgeVirtualCard`, `BridgePlasticCard`; status `Active`, `ActivationNotStarted`, `InProgress`, `NotFulfilled`, `NotRequired`, `NotAvailable`; the guide lists only `Active`, `NotFulfilled`, `NotAvailable`).
 
 ### v1 -- External Fee
 
@@ -223,7 +224,7 @@ All issue endpoints return `200` with `{ "id": "<card id>" }`; the card starts `
 | `delivery_address` | object | Physical only | See [Address Fields](#address-fields) |
 | `delivery_provider` | string | No | Courier provider |
 | `card_name` | string | No | Display name (1-50 chars) |
-| `name_on_card` | string | No | Printed name (2-26 chars) |
+| `name_on_card` | string | No | Printed name (2-26 chars per guide; not enforced by the API, see Field Validation Patterns) |
 
 ### v2 -- Direct Fee
 
@@ -245,7 +246,7 @@ All issue endpoints return `200` with `{ "id": "<card id>" }`; the card starts `
 | `delivery_address` | object | Physical only | Omit for virtual |
 | `delivery_provider` | string | No | Courier provider |
 | `card_name` | string | No | 1-50 chars |
-| `name_on_card` | string | No | 2-26 chars |
+| `name_on_card` | string | No | 2-26 chars per guide (not enforced by the API, see Field Validation Patterns) |
 
 ### v3 -- Bridge Rail and Configurable Issuance
 
@@ -717,7 +718,7 @@ Error format:
 | Field | Validation |
 |-------|-----------|
 | `card_name` / change-name `name` | `^[a-zA-Z0-9\-':+# @]{1,50}$` |
-| `name_on_card` | `^[A-Za-z][A-Za-z .'-]{1,25}$` (2-26 chars, starts with a letter) |
+| `name_on_card` | Published rule `^[A-Za-z][A-Za-z .'-]{1,25}$` (2-26 chars, starts with a letter); not enforced by the API per the validation-rules guide, the card processor may still reject (`400 "Request failed due to external validation failure"`) |
 | `card_number_last4` | Exactly 4 digits |
 | `expiry_date` (activation) | `MM/YYYY` |
 | `delivery_address.*` | See [Address Fields](#address-fields) |

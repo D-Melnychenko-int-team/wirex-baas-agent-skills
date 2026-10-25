@@ -241,6 +241,8 @@ Issue time       |--- Use cached token ---|--- Refresh ---|
 ```
 
 > **Note:** `error_category` is an **object** with `category` and `http_status_code` fields. `error_details` is an optional array providing field-level error context.
+>
+> Note: docs differ. The guides show `error_reason` as a string; the OpenAPI schema (`response.ErrorResponse`) models it as an object `{"reason": "..."}`. Branch on the string as the guide says.
 
 ### Common Authentication Errors
 
